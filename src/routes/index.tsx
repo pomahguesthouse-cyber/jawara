@@ -186,7 +186,7 @@ function LatestProducts() {
           <EmptyState text="Belum ada produk. Tambahkan produk dari dashboard UMKM Anda." />
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-8">
-            {data.products.map((p: never) => <ProductCard key={(p as { id: string }).id} product={p} />)}
+            {data.products.map((p) => <ProductCard key={p.id} product={p} />)}
           </div>
         )}
       </div>
