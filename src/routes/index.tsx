@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import {
-  Search, MapPin, ChevronRight, Star, BadgeCheck, Heart,
+  Search, MapPin, ChevronRight, ChevronLeft, Star, BadgeCheck, Heart,
   Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +14,7 @@ const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
     const [umkm, products, umkmProducts, events, articles, categories] = await Promise.all([
-      supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, review_count").eq("is_published", true).order("rating", { ascending: false }).limit(8),
+      supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified").eq("is_published", true).order("rating", { ascending: false }).limit(8),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
       supabase.from("products").select("umkm_id, image_url").eq("is_published", true).not("image_url", "is", null).order("created_at", { ascending: false }).limit(100),
@@ -304,7 +304,6 @@ interface UmkmData {
   banner_url?: string | null;
   rating: number | null;
   is_verified?: boolean;
-  review_count?: number | null;
   [key: string]: unknown;
 }
 
@@ -494,23 +493,102 @@ function TrustSection() {
 // ─── Latest Products ──────────────────────────────────────────────────────────
 function LatestProducts() {
   const { data } = useSuspenseQuery(homeQueryOptions);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || data.products.length === 0 || isPaused) return;
+
+    const interval = setInterval(() => {
+      const card = el.firstElementChild as HTMLElement;
+      if (!card) return;
+
+      const cardWidth = card.offsetWidth;
+      const gap = window.innerWidth >= 640 ? 20 : 12; // sm:gap-5 is 20px, gap-3 is 12px
+      const step = cardWidth + gap;
+
+      let nextScroll = el.scrollLeft + step;
+      // Wrap back to start if we exceed the scrollable content
+      if (nextScroll >= el.scrollWidth - el.clientWidth - 10) {
+        nextScroll = 0;
+      }
+
+      el.scrollTo({
+        left: nextScroll,
+        behavior: "smooth",
+      });
+    }, 3000); // Transitions automatically every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [data.products.length, isPaused]);
+
   if (data.products.length === 0) return null;
 
+  const handleManualScroll = (direction: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const card = el.firstElementChild as HTMLElement;
+    if (!card) return;
+
+    const cardWidth = card.offsetWidth;
+    const gap = window.innerWidth >= 640 ? 20 : 12;
+    const step = cardWidth + gap;
+
+    const nextScroll = direction === "left" 
+      ? el.scrollLeft - step 
+      : el.scrollLeft + step;
+
+    el.scrollTo({
+      left: nextScroll,
+      behavior: "smooth",
+    });
+  };
+
   return (
-    <section className="py-10 sm:py-14 bg-white">
+    <section className="py-10 sm:py-14 bg-white overflow-hidden">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-end justify-between mb-6">
           <div>
             <h2 className="text-xl sm:text-2xl font-extrabold text-gray-900">Produk Terbaru</h2>
             <p className="text-sm text-gray-500 mt-1">Produk unggulan dari UMKM Jawa Tengah</p>
           </div>
-          <Link to="/marketplace" className="text-sm font-bold text-[#1a6b3c] hover:underline flex items-center gap-1 shrink-0">
-            Marketplace <ChevronRight className="size-4" />
-          </Link>
+          <div className="flex items-center gap-3 shrink-0">
+            {/* Slider Navigation Buttons */}
+            <div className="flex items-center gap-1.5 mr-2">
+              <button
+                onClick={() => handleManualScroll("left")}
+                className="size-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#1a6b3c] hover:text-[#1a6b3c] active:bg-gray-50 transition cursor-pointer"
+                aria-label="Slide sebelumnya"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+              <button
+                onClick={() => handleManualScroll("right")}
+                className="size-9 rounded-full border border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#1a6b3c] hover:text-[#1a6b3c] active:bg-gray-50 transition cursor-pointer"
+                aria-label="Slide berikutnya"
+              >
+                <ChevronRight className="size-4" />
+              </button>
+            </div>
+            <Link to="/marketplace" className="text-sm font-bold text-[#1a6b3c] hover:underline flex items-center gap-1">
+              Marketplace <ChevronRight className="size-4" />
+            </Link>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
+
+        {/* Horizontal Slider Track Container */}
+        <div
+          ref={scrollRef}
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+          onFocus={() => setIsPaused(true)}
+          onBlur={() => setIsPaused(false)}
+          className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-5 scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0"
+        >
           {data.products.slice(0, 8).map((p) => (
-            <div key={p.id} className="group">
+            <div key={p.id} className="w-[200px] sm:w-[240px] md:w-[260px] lg:w-[285px] shrink-0 group">
               <div className="aspect-[4/5] w-full rounded-2xl bg-gray-100 overflow-hidden ring-1 ring-gray-100 mb-2.5">
                 {p.image_url ? (
                   <img src={p.image_url} alt={p.name} loading="lazy" className="size-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -518,7 +596,7 @@ function LatestProducts() {
                   <div className="size-full flex items-center justify-center text-gray-300 text-xs">Tanpa Foto</div>
                 )}
               </div>
-              <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1">{p.name}</h3>
+              <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-[#1a6b3c] transition-colors">{p.name}</h3>
               <p className="text-sm font-bold text-[#1a6b3c]">{formatRupiah(p.price)}</p>
               {p.umkm && (
                 <p className="text-[11px] text-gray-400 mt-0.5 truncate">oleh {(p.umkm as { name: string }).name}</p>
