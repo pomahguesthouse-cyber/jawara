@@ -129,6 +129,8 @@ interface SlideSettings {
     ogTitle: string;
     ogDescription: string;
   };
+  /** Auto-advance duration for this slide in milliseconds. Default 6000. */
+  duration: number;
 }
 
 interface HeroSlideRow {
@@ -234,6 +236,7 @@ const defaultSettings: SlideSettings = {
     ogTitle: "",
     ogDescription: "",
   },
+  duration: 6000,
 };
 
 const VIEWPORTS: ViewportMode[] = [
@@ -1386,6 +1389,35 @@ function AdminHeroSliderPage() {
                         {dev === "both" ? "Keduanya" : dev}
                       </button>
                     ))}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-[10px] font-bold text-zinc-400">Durasi Tampil</label>
+                    <span className="text-[10px] font-bold text-emerald-400">
+                      {((activeSlide?.settings.duration ?? 6000) / 1000).toFixed(1)} dtk
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="1"
+                    max="20"
+                    step="0.5"
+                    value={(activeSlide?.settings.duration ?? 6000) / 1000}
+                    onChange={(e) => {
+                      const seconds = parseFloat(e.target.value) || 6;
+                      updateActiveSlide((s) => ({
+                        ...s,
+                        settings: { ...s.settings, duration: Math.round(seconds * 1000) },
+                      }));
+                    }}
+                    className="w-full accent-emerald-500"
+                  />
+                  <div className="flex justify-between text-[8px] text-zinc-600 font-bold mt-0.5">
+                    <span>1s</span>
+                    <span>10s</span>
+                    <span>20s</span>
                   </div>
                 </div>
 
