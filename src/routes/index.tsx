@@ -68,131 +68,199 @@ function HomePage() {
   );
 }
 
-// ─── Hero ────────────────────────────────────────────────────────────────────
+// ─── Hero Slider ─────────────────────────────────────────────────────────────
 const CITIES = ["Semua Kota", "Semarang", "Solo", "Yogyakarta", "Magelang", "Pekalongan", "Purwokerto", "Kudus", "Jepara", "Demak"];
 
+const HERO_SLIDES = [
+  {
+    id: 1,
+    image: "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1600",
+    title: "Temukan UMKM Terbaik Jawa Tengah",
+    subtext: "Direktori digital wirausaha pilihan dengan rating terbaik dan layanan terpercaya di Jawa Tengah.",
+    type: "search",
+  },
+  {
+    id: 2,
+    image: "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?q=80&w=1600",
+    title: "Dukung Produk Unggulan Lokal",
+    subtext: "Jelajahi dan beli produk kerajinan, fashion, serta kuliner khas langsung dari produsen lokal terbaik.",
+    type: "button",
+    btnText: "Kunjungi Marketplace",
+    btnTo: "/marketplace",
+  },
+  {
+    id: 3,
+    image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1600",
+    title: "Bawa Usaha Anda ke Dunia Digital",
+    subtext: "Daftar secara gratis, kelola katalog produk, dan perluas jangkauan pasar wirausaha Anda bersama JAWARA.",
+    type: "button",
+    btnText: "Daftarkan UMKM Anda",
+    btnTo: "/auth",
+    btnSearch: { mode: "register" },
+  }
+];
+
 function Hero() {
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [q, setQ] = useState("");
   const [city, setCity] = useState("Semarang");
   const navigate = useNavigate();
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-play slideshow
+  useEffect(() => {
+    timerRef.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    }, 6000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+  };
+
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+  };
+
+  const handleDotClick = (idx: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setCurrentSlide(idx);
+  };
 
   return (
-    <section className="bg-white overflow-hidden">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 sm:py-16">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-4 items-center">
-
-          {/* ── Left content ── */}
-          <div className="space-y-6">
-            <div>
-              <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 leading-[1.1] tracking-tight">
-                Temukan UMKM<br />
-                <span className="text-[#1a6b3c]">Terbaik Jawa Tengah</span>
-              </h1>
-              <p className="mt-4 text-gray-500 text-base leading-relaxed max-w-md">
-                Direktori digital UMKM Jawa Tengah pilihan dengan rating terbaik dan layanan terpercaya.
-              </p>
-            </div>
-
-            {/* Search bar */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
-              }}
-              className="flex items-center gap-0 bg-white ring-1 ring-gray-200 rounded-2xl shadow-md overflow-hidden"
-            >
-              {/* City selector */}
-              <div className="relative shrink-0 border-r border-gray-200">
-                <div className="flex items-center gap-1.5 px-3 py-3">
-                  <MapPin className="size-4 text-[#1a6b3c] shrink-0" />
-                  <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    className="text-sm font-semibold text-gray-700 bg-transparent focus:outline-none pr-5 appearance-none cursor-pointer"
-                  >
-                    {CITIES.map((c) => <option key={c}>{c}</option>)}
-                  </select>
-                  <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Search input */}
-              <div className="flex-1 flex items-center gap-2 px-4 min-w-0">
-                <Search className="size-4 text-gray-400 shrink-0" />
-                <input
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Cari usaha, produk, kategori..."
-                  className="w-full h-12 bg-transparent text-sm focus:outline-none text-gray-700 placeholder:text-gray-400 min-w-0"
-                />
-              </div>
-
-              {/* Submit button */}
-              <button
-                type="submit"
-                className="shrink-0 h-12 px-5 sm:px-6 bg-[#1a6b3c] text-white text-sm font-bold hover:bg-[#155c33] transition flex items-center gap-2"
-              >
-                Cari Sekarang <ChevronRight className="size-4" />
-              </button>
-            </form>
-
-            {/* Category quick links */}
-            <div>
-              <p className="text-xs text-gray-400 font-semibold mb-3 uppercase tracking-wider">Kategori Populer</p>
-              <QuickCategories />
-            </div>
-          </div>
-
-          {/* ── Right hero visual ── */}
-          <div className="relative flex justify-center lg:justify-end">
-            {/* Green blob background */}
-            <div
-              className="absolute inset-0 -z-0 rounded-[3rem] opacity-20"
-              style={{ background: "radial-gradient(ellipse at 60% 40%, #a7f3d0 0%, #6ee7b7 40%, transparent 70%)" }}
+    <section className="relative w-full overflow-hidden bg-gray-900 min-h-[520px] sm:h-[580px] flex items-center group">
+      {/* Slides */}
+      {HERO_SLIDES.map((slide, idx) => {
+        const isActive = idx === currentSlide;
+        return (
+          <div
+            key={slide.id}
+            className={`absolute inset-0 size-full transition-opacity duration-1000 ease-in-out flex items-center ${
+              isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+            }`}
+          >
+            {/* Background Image */}
+            <img
+              src={slide.image}
+              alt=""
+              className="absolute inset-0 size-full object-cover object-center"
             />
+            {/* Dark gradient overlay for typography readability */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/35 lg:to-black/10" />
 
-            {/* Stat cards */}
-            <div className="absolute top-4 left-0 sm:left-4 z-10 bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 min-w-[160px]">
-              <div className="size-10 rounded-xl bg-green-100 flex items-center justify-center shrink-0">
-                <Shield className="size-5 text-[#1a6b3c]" />
-              </div>
-              <div>
-                <p className="font-extrabold text-gray-900 text-lg leading-none">10.000+</p>
-                <p className="text-xs text-gray-500 mt-0.5">UMKM Terdaftar</p>
-              </div>
-            </div>
+            {/* Slide Content container */}
+            <div className="relative z-10 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
+              <div className="max-w-2xl text-white space-y-6 py-12 md:py-16">
+                <h1 className="text-3xl sm:text-5xl font-black leading-[1.1] tracking-tight animate-fade-up">
+                  {slide.title}
+                </h1>
+                <p className="text-gray-200 text-sm sm:text-base max-w-lg leading-relaxed animate-fade-up">
+                  {slide.subtext}
+                </p>
 
-            <div className="absolute top-28 sm:top-32 left-0 sm:left-4 z-10 bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3 min-w-[150px]">
-              <div className="size-10 rounded-xl bg-yellow-100 flex items-center justify-center shrink-0">
-                <Star className="size-5 text-yellow-500 fill-yellow-500" />
-              </div>
-              <div>
-                <p className="font-extrabold text-gray-900 text-lg leading-none">4.9</p>
-                <p className="text-xs text-gray-500 mt-0.5">Rating Rata-rata</p>
-              </div>
-            </div>
+                {/* Render content based on slide type */}
+                {slide.type === "search" && (
+                  <div className="space-y-6 animate-fade-up">
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
+                      }}
+                      className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl sm:rounded-full p-1.5 shadow-lg gap-2 text-gray-800"
+                    >
+                      {/* City Selector */}
+                      <div className="relative flex items-center gap-1.5 px-3 py-2.5 border-b sm:border-b-0 sm:border-r border-gray-100 shrink-0">
+                        <MapPin className="size-4 text-[#1a6b3c]" />
+                        <select
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="text-sm font-semibold text-gray-700 bg-transparent focus:outline-none pr-5 appearance-none cursor-pointer w-full"
+                        >
+                          {CITIES.map((c) => <option key={c}>{c}</option>)}
+                        </select>
+                        <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
+                      </div>
 
-            <div className="absolute bottom-8 left-0 sm:left-8 z-10 bg-white rounded-2xl shadow-lg px-4 py-3 flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-blue-100 flex items-center justify-center shrink-0">
-                <TrendingUp className="size-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="font-bold text-gray-900 text-sm leading-snug">Tumbuh Bersama</p>
-                <p className="text-xs text-gray-500">UMKM Jateng</p>
-              </div>
-            </div>
+                      {/* Search Input */}
+                      <div className="flex-1 flex items-center gap-2 px-3 py-2 sm:py-0">
+                        <Search className="size-4 text-gray-400 shrink-0" />
+                        <input
+                          value={q}
+                          onChange={(e) => setQ(e.target.value)}
+                          placeholder="Cari usaha, produk, kategori..."
+                          className="w-full h-10 bg-transparent text-sm focus:outline-none text-gray-700"
+                        />
+                      </div>
 
-            {/* Hero woman image */}
-            <div className="relative z-0 w-full max-w-sm sm:max-w-md lg:max-w-lg">
-              <img
-                src="/hero-woman.png"
-                alt="Pengusaha UMKM Jawa Tengah"
-                className="w-full h-auto object-contain drop-shadow-xl"
-                style={{ maxHeight: 420 }}
-              />
+                      {/* Submit button */}
+                      <button
+                        type="submit"
+                        className="h-11 sm:h-12 px-6 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold rounded-xl sm:rounded-full transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+                      >
+                        Cari Sekarang <ChevronRight className="size-4" />
+                      </button>
+                    </form>
+                    
+                    {/* Category quick links */}
+                    <div className="pt-2">
+                      <p className="text-xs text-gray-300 font-semibold mb-2.5 uppercase tracking-wider">Kategori Populer</p>
+                      <QuickCategories />
+                    </div>
+                  </div>
+                )}
+
+                {slide.type === "button" && (
+                  <div className="pt-2 animate-fade-up">
+                    <Link
+                      to={slide.btnTo!}
+                      search={slide.btnSearch as never}
+                      className="inline-flex items-center gap-2 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold px-7 py-3.5 rounded-full text-sm sm:text-base transition shadow-md cursor-pointer"
+                    >
+                      {slide.btnText} <ChevronRight className="size-5" />
+                    </Link>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        );
+      })}
+
+      {/* Navigation Arrows (Desktop Only) */}
+      <button
+        onClick={handlePrev}
+        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer md:flex hidden"
+        aria-label="Slide sebelumnya"
+      >
+        <ChevronLeft className="size-5" />
+      </button>
+      <button
+        onClick={handleNext}
+        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer md:flex hidden"
+        aria-label="Slide berikutnya"
+      >
+        <ChevronRight className="size-5" />
+      </button>
+
+      {/* Dot Indicators */}
+      <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2.5">
+        {HERO_SLIDES.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={() => handleDotClick(idx)}
+            className={`size-2.5 rounded-full transition-all cursor-pointer ${
+              idx === currentSlide ? "bg-[#1a6b3c] w-6" : "bg-white/40 hover:bg-white/70"
+            }`}
+            aria-label={`Ke slide ${idx + 1}`}
+          />
+        ))}
       </div>
     </section>
   );
