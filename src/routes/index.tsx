@@ -13,7 +13,7 @@ import { formatRupiah } from "@/lib/format";
 const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
-    const [umkm, products, umkmProducts, events, articles, categories, heroSlidesResult] = await Promise.all([
+    const [umkm, products, umkmProducts, events, articles, categories, heroSlidesResult, searchIconResult] = await Promise.all([
       supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(name)").eq("is_published", true).order("rating", { ascending: false }).limit(8),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
@@ -25,6 +25,20 @@ const homeQueryOptions = queryOptions({
         (res) => (res.error ? { data: [] } : res),
         () => ({ data: [] })
       ),
+      // Lookup the floating search-toggle artwork by its admin-set name in
+      // the media library. Falls back to null and a hardcoded fallback in
+      // the component if the row or table isn't there.
+      supabase
+        .from("hero_media_library")
+        .select("url")
+        .eq("name", "search-icon-animation.gif")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(
+          (res) => (res.error ? { data: null } : res),
+          () => ({ data: null })
+        ),
     ]);
 
     // Build map: umkm_id → first 4 product image URLs
@@ -38,6 +52,7 @@ const homeQueryOptions = queryOptions({
     }
 
     const heroSlides = (heroSlidesResult?.data ?? []) as any[];
+    const searchIconUrl = (searchIconResult?.data as { url?: string } | null)?.url ?? null;
 
     return {
       umkm: umkm.data ?? [],
@@ -47,6 +62,7 @@ const homeQueryOptions = queryOptions({
       articles: articles.data ?? [],
       categories: categories.data ?? [],
       heroSlides,
+      searchIconUrl,
     };
   },
 });
@@ -316,6 +332,13 @@ function Hero() {
   const mobileSwipe = useSwipe(mobileCarousel.next, mobileCarousel.prev);
   const desktopSwipe = useSwipe(desktopCarousel.next, desktopCarousel.prev);
 
+  // Floating search-toggle artwork — looked up from the media library by
+  // name. Fall back to the previously-uploaded asset so the icon never
+  // disappears even if the library row is missing on a given environment.
+  const searchIconUrl =
+    data.searchIconUrl ??
+    "https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif";
+
   return (
     <>
       {/* ─── MOBILE HERO (< md) — vertical, centered, compact search ──────── */}
@@ -404,7 +427,7 @@ function Hero() {
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
-                src="https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif"
+                src={searchIconUrl}
                 alt=""
                 aria-hidden
                 draggable={false}
@@ -517,7 +540,7 @@ function Hero() {
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
-                src="https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif"
+                src={searchIconUrl}
                 alt=""
                 aria-hidden
                 draggable={false}
