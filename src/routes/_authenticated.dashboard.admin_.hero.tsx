@@ -597,16 +597,110 @@ function AdminHeroSliderPage() {
     toast.info("Urutan slide berhasil diperbarui");
   };
 
-  // ─── Unsplash Search Simulation ────────────────────────────────────────────
-  const applyUnsplashImage = (url: string) => {
+  // ─── Apply media from library to the active slide ──────────────────────────
+  const applyMediaToSlide = (item: { url: string; mime_type?: string | null; name: string }) => {
+    const isVideo = (item.mime_type ?? "").startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(item.name);
     updateActiveSlide((s) => ({
       ...s,
       settings: {
         ...s.settings,
-        background: { ...s.settings.background, image: url },
+        background: isVideo
+          ? { ...s.settings.background, type: "video", videoUrl: item.url, videoProvider: "upload" }
+          : { ...s.settings.background, type: "image", image: item.url },
       },
     }));
-    toast.success("Gambar Unsplash diterapkan!");
+    toast.success(isVideo ? `Video "${item.name}" diterapkan` : `Gambar "${item.name}" diterapkan`);
+  };
+
+  // Back-compat: existing callers use applyUnsplashImage with just a URL.
+  const applyUnsplashImage = (url: string) =>
+    applyMediaToSlide({ url, name: url.split("/").pop() || "media" });
+
+  // ─── Delete media (storage + DB row) ───────────────────────────────────────
+  const handleDeleteMedia = async (item: { id: string; name: string; url: string }) => {
+    // Pull storage_path from the dbMedia cache if we have it.
+    const row = (dbMedia as any[]).find((m) => m.id === item.id);
+    const storagePath: string | undefined = row?.storage_path;
+    if (storagePath) {
+      const { error: storageErr } = await supabase.storage.from("hero-media").remove([storagePath]);
+      if (storageErr) {
+        toast.error(`Gagal menghapus file storage: ${storageErr.message}`);
+        return;
+      }
+    }
+    const { error: dbErr } = await supabase.from("hero_media_library").delete().eq("id", item.id);
+    if (dbErr) {
+      toast.error(`Gagal menghapus dari library: ${dbErr.message}`);
+      return;
+    }
+    setMediaItems((prev) => prev.filter((m) => m.id !== item.id));
+    qc.invalidateQueries({ queryKey: ["hero-media-library"] });
+    toast.success(`"${item.name}" dihapus`);
+  };
+
+  // ─── Rename media in DB ────────────────────────────────────────────────────
+  const handleRenameMedia = async (id: string, newName: string) => {
+    if (!newName.trim()) return;
+    const { error } = await supabase
+      .from("hero_media_library")
+      .update({ name: newName.trim() })
+      .eq("id", id);
+    if (error) {
+      toast.error(`Gagal rename: ${error.message}`);
+      return;
+    }
+    setMediaItems((prev) => prev.map((m) => (m.id === id ? { ...m, name: newName.trim() } : m)));
+    qc.invalidateQueries({ queryKey: ["hero-media-library"] });
+    toast.success("Nama media diperbarui");
+  };
+
+  // ─── Upload helper (single multi-file upload entry-point used by both
+  // the sidebar tab and the full-width Media Library below) ────────────────
+  const uploadMediaFiles = async (files: FileList | File[], folder: string) => {
+    const arr = Array.from(files);
+    if (arr.length === 0) return;
+    toast.info(`Mengunggah ${arr.length} file ke Supabase Storage...`);
+    for (let i = 0; i < arr.length; i++) {
+      const file = arr[i];
+      const ext = file.name.split(".").pop() || "bin";
+      const path = `${folder.toLowerCase().replace(/\s+/g, "-")}/${Date.now()}-${i}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("hero-media")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (upErr) {
+        toast.error(`Gagal upload ${file.name}: ${upErr.message}`);
+        continue;
+      }
+      const { data: pub } = supabase.storage.from("hero-media").getPublicUrl(path);
+      const { data: row, error: rowErr } = await supabase
+        .from("hero_media_library")
+        .insert({
+          name: file.name,
+          url: pub.publicUrl,
+          storage_path: path,
+          folder,
+          size_bytes: file.size,
+          mime_type: file.type,
+        })
+        .select()
+        .single();
+      if (rowErr) {
+        toast.error(`Upload OK tapi gagal catat library: ${rowErr.message}`);
+        continue;
+      }
+      setMediaItems((prev) => [
+        {
+          id: row.id,
+          name: row.name,
+          url: row.url,
+          folder: row.folder,
+          size: `${(file.size / 1024).toFixed(0)} KB`,
+        },
+        ...prev,
+      ]);
+      toast.success(`${file.name} terunggah`);
+    }
+    qc.invalidateQueries({ queryKey: ["hero-media-library"] });
   };
 
   // ─── AI Helper Generation Simulation ──────────────────────────────────────
@@ -868,53 +962,7 @@ function AdminHeroSliderPage() {
                     type="file"
                     multiple
                     accept="image/*,video/*"
-                    onChange={async (e) => {
-                      const files = e.target.files;
-                      if (!files) return;
-                      toast.info(`Mengunggah ${files.length} file ke Supabase Storage...`);
-                      for (let i = 0; i < files.length; i++) {
-                        const file = files[i];
-                        const ext = file.name.split(".").pop() || "bin";
-                        const path = `${mediaFolder.toLowerCase().replace(/\s+/g, "-")}/${Date.now()}-${i}.${ext}`;
-                        const { error: upErr } = await supabase.storage
-                          .from("hero-media")
-                          .upload(path, file, { cacheControl: "3600", upsert: false });
-                        if (upErr) {
-                          toast.error(`Gagal upload ${file.name}: ${upErr.message}`);
-                          continue;
-                        }
-                        const { data: pub } = supabase.storage.from("hero-media").getPublicUrl(path);
-                        const publicUrl = pub.publicUrl;
-                        const { data: row, error: rowErr } = await supabase
-                          .from("hero_media_library")
-                          .insert({
-                            name: file.name,
-                            url: publicUrl,
-                            storage_path: path,
-                            folder: mediaFolder,
-                            size_bytes: file.size,
-                            mime_type: file.type,
-                          })
-                          .select()
-                          .single();
-                        if (rowErr) {
-                          toast.error(`Upload OK tapi gagal catat library: ${rowErr.message}`);
-                          continue;
-                        }
-                        setMediaItems((prev) => [
-                          {
-                            id: row.id,
-                            name: row.name,
-                            url: row.url,
-                            folder: row.folder,
-                            size: `${(file.size / 1024).toFixed(0)} KB`,
-                          },
-                          ...prev,
-                        ]);
-                        toast.success(`${file.name} terunggah`);
-                      }
-                      qc.invalidateQueries({ queryKey: ["hero-media-library"] });
-                    }}
+                    onChange={(e) => e.target.files && uploadMediaFiles(e.target.files, mediaFolder)}
                     className="absolute inset-0 size-full opacity-0 cursor-pointer"
                   />
                 </div>
@@ -922,27 +970,44 @@ function AdminHeroSliderPage() {
                 <div className="grid grid-cols-2 gap-2">
                   {mediaItems
                     .filter((m) => m.folder === mediaFolder)
-                    .map((item) => (
-                      <div
-                        key={item.id}
-                        onClick={() => {
-                          if (mediaFolder === "Logos") {
-                            toast.info("Logo dipilih");
-                          } else {
-                            applyUnsplashImage(item.url);
-                          }
-                        }}
-                        className="group relative aspect-video bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-emerald-500 cursor-pointer transition"
-                      >
-                        <img src={item.url} alt="" className="size-full object-cover" />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                          <span className="text-[9px] font-bold text-white uppercase bg-emerald-600 px-2 py-1 rounded-full">Apply</span>
+                    .map((item) => {
+                      const row = (dbMedia as any[]).find((m) => m.id === item.id);
+                      const isVideo = (row?.mime_type ?? "").startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(item.name);
+                      return (
+                        <div
+                          key={item.id}
+                          className="group relative aspect-video bg-zinc-950 rounded-xl overflow-hidden border border-zinc-800 hover:border-emerald-500 transition"
+                        >
+                          {isVideo ? (
+                            <div className="size-full grid place-items-center bg-zinc-900">
+                              <Video className="size-6 text-zinc-500" />
+                            </div>
+                          ) : (
+                            <img src={item.url} alt="" className="size-full object-cover" />
+                          )}
+                          <div
+                            onClick={() => applyMediaToSlide({ url: item.url, name: item.name, mime_type: row?.mime_type })}
+                            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition cursor-pointer"
+                          >
+                            <span className="text-[9px] font-bold text-white uppercase bg-emerald-600 px-2 py-1 rounded-full">Apply</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Hapus "${item.name}"?`)) handleDeleteMedia(item);
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-red-600/90 hover:bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition"
+                            title="Hapus media"
+                          >
+                            <Trash2 className="size-3" />
+                          </button>
+                          <div className="absolute bottom-1 left-1 bg-black/75 px-1.5 py-0.5 rounded text-[8px] text-zinc-400 truncate max-w-[90%]">
+                            {item.name}
+                          </div>
                         </div>
-                        <div className="absolute bottom-1 left-1 bg-black/75 px-1.5 py-0.5 rounded text-[8px] text-zinc-400 truncate max-w-[90%]">
-                          {item.name}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </div>
             )}
@@ -1646,7 +1711,7 @@ function AdminHeroSliderPage() {
                   {activeSlide.settings.background.type === "video" && (
                     <div className="space-y-3 bg-zinc-900 p-2.5 rounded-xl border border-zinc-800">
                       <div>
-                        <label className="text-[9px] font-bold text-zinc-400 block mb-1">YouTube / Direct Video URL</label>
+                        <label className="text-[9px] font-bold text-zinc-400 block mb-1">YouTube / Vimeo / Direct Video URL</label>
                         <input
                           value={activeSlide.settings.background.videoUrl}
                           onChange={(e) =>
@@ -1658,7 +1723,50 @@ function AdminHeroSliderPage() {
                               },
                             }))
                           }
-                          placeholder="e.g. https://www.youtube.com/watch?v=..."
+                          placeholder="https://youtube.com/... atau .mp4"
+                          className="w-full h-7 bg-zinc-950 border border-zinc-800 rounded text-xs px-2"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] font-bold text-zinc-400 block mb-1">Pilih dari Media Library</label>
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const id = e.target.value;
+                            if (!id) return;
+                            const item = mediaItems.find((m) => m.id === id);
+                            if (item) applyMediaToSlide({ url: item.url, name: item.name, mime_type: (dbMedia as any[]).find((d) => d.id === id)?.mime_type });
+                          }}
+                          className="w-full h-7 bg-zinc-950 border border-zinc-800 rounded text-xs px-2 text-zinc-200"
+                        >
+                          <option value="">— Pilih file video —</option>
+                          {mediaItems
+                            .filter((m) => {
+                              const row = (dbMedia as any[]).find((d) => d.id === m.id);
+                              const mt = row?.mime_type ?? "";
+                              return mt.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(m.name);
+                            })
+                            .map((m) => (
+                              <option key={m.id} value={m.id}>{m.name}</option>
+                            ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="text-[9px] font-bold text-zinc-400 block mb-1">Poster (fallback image)</label>
+                        <input
+                          value={activeSlide.settings.background.videoPoster || ""}
+                          onChange={(e) =>
+                            updateActiveSlide((s) => ({
+                              ...s,
+                              settings: {
+                                ...s.settings,
+                                background: { ...s.settings.background, videoPoster: e.target.value },
+                              },
+                            }))
+                          }
+                          placeholder="URL gambar poster (opsional)"
                           className="w-full h-7 bg-zinc-950 border border-zinc-800 rounded text-xs px-2"
                         />
                       </div>
@@ -2216,6 +2324,16 @@ function AdminHeroSliderPage() {
         </aside>
       </div>
 
+      {/* ─── Full-width Media Library Manager ────────────────────────────────── */}
+      <MediaLibraryManager
+        items={mediaItems}
+        dbMedia={dbMedia as any[]}
+        onUpload={uploadMediaFiles}
+        onDelete={handleDeleteMedia}
+        onRename={handleRenameMedia}
+        onApply={applyMediaToSlide}
+      />
+
       {/* ─── AI Modal Dialog ────────────────────────────────────────────────── */}
       {showAiModal && (
         <div className="fixed inset-0 z-50 bg-black/85 flex items-center justify-center p-4 animate-fade-in">
@@ -2415,5 +2533,197 @@ function SortableItem({
         </button>
       </div>
     </div>
+  );
+}
+
+// ─── Full-width Media Library Manager ─────────────────────────────────────────
+type MediaItemVM = { id: string; name: string; url: string; folder: string; size: string };
+type DbMediaRow = { id: string; mime_type?: string | null; storage_path?: string | null; size_bytes?: number | null; created_at?: string };
+
+const FOLDERS = ["Hero Images", "Hero Videos", "Logos", "Backgrounds"] as const;
+
+function MediaLibraryManager({
+  items,
+  dbMedia,
+  onUpload,
+  onDelete,
+  onRename,
+  onApply,
+}: {
+  items: MediaItemVM[];
+  dbMedia: DbMediaRow[];
+  onUpload: (files: FileList | File[], folder: string) => Promise<void>;
+  onDelete: (item: { id: string; name: string; url: string }) => Promise<void>;
+  onRename: (id: string, newName: string) => Promise<void>;
+  onApply: (item: { url: string; name: string; mime_type?: string | null }) => void;
+}) {
+  const [folder, setFolder] = useState<(typeof FOLDERS)[number] | "All">("All");
+  const [query, setQuery] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const enriched = items.map((it) => {
+    const row = dbMedia.find((d) => d.id === it.id);
+    const mt = row?.mime_type ?? "";
+    const isVideo = mt.startsWith("video/") || /\.(mp4|webm|mov|m4v)$/i.test(it.name);
+    return { ...it, mime_type: mt, isVideo, sizeBytes: row?.size_bytes ?? 0, createdAt: row?.created_at };
+  });
+
+  const filtered = enriched.filter((m) => {
+    if (folder !== "All" && m.folder !== folder) return false;
+    if (query && !m.name.toLowerCase().includes(query.toLowerCase())) return false;
+    return true;
+  });
+
+  return (
+    <section className="bg-zinc-950 border-t border-zinc-900">
+      <div className="p-5 max-w-[1600px] mx-auto">
+        <header className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+          <div>
+            <h2 className="text-base font-black text-white flex items-center gap-2">
+              <Folder className="size-4 text-emerald-400" />
+              Media Library
+            </h2>
+            <p className="text-[11px] text-zinc-500 mt-0.5">
+              Kelola semua file media untuk hero slider. Klik gambar untuk apply ke slide aktif, gunakan menu untuk rename / hapus.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="size-3.5 text-zinc-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Cari file..."
+                className="h-9 w-56 bg-zinc-900 border border-zinc-800 rounded-xl pl-8 pr-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+            </div>
+            <select
+              value={folder}
+              onChange={(e) => setFolder(e.target.value as any)}
+              className="h-9 bg-zinc-900 border border-zinc-800 rounded-xl px-3 text-xs font-bold text-zinc-200 focus:outline-none"
+            >
+              <option value="All">Semua Folder</option>
+              {FOLDERS.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 shadow"
+            >
+              <UploadCloud className="size-3.5" />
+              Upload
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,video/*"
+              hidden
+              onChange={(e) => {
+                if (!e.target.files) return;
+                const target = folder === "All" ? "Hero Images" : folder;
+                onUpload(e.target.files, target);
+                e.target.value = "";
+              }}
+            />
+          </div>
+        </header>
+
+        {filtered.length === 0 ? (
+          <div className="text-center py-10 bg-zinc-900/50 border border-dashed border-zinc-800 rounded-2xl text-xs text-zinc-500">
+            Tidak ada media. Klik <span className="text-emerald-400 font-bold">Upload</span> untuk menambahkan file.
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {filtered.map((m) => (
+              <div
+                key={m.id}
+                className="group bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden hover:border-emerald-500/60 transition"
+              >
+                <div className="relative aspect-video bg-zinc-950">
+                  {m.isVideo ? (
+                    <div className="size-full grid place-items-center">
+                      <Video className="size-8 text-zinc-600" />
+                      <span className="absolute bottom-1.5 left-1.5 bg-black/75 px-1.5 py-0.5 rounded text-[9px] text-emerald-300 font-bold uppercase">video</span>
+                    </div>
+                  ) : (
+                    <img src={m.url} alt={m.name} className="size-full object-cover" loading="lazy" />
+                  )}
+                  <div className="absolute inset-0 bg-black/55 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-1.5 transition">
+                    <button
+                      onClick={() => onApply({ url: m.url, name: m.name, mime_type: m.mime_type })}
+                      className="text-[10px] font-bold text-white bg-emerald-600 hover:bg-emerald-500 px-2.5 py-1 rounded-full"
+                    >
+                      Apply ke slide
+                    </button>
+                    <a
+                      href={m.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[10px] font-bold text-white bg-zinc-700 hover:bg-zinc-600 px-2.5 py-1 rounded-full"
+                    >
+                      Buka
+                    </a>
+                  </div>
+                </div>
+
+                <div className="p-2 space-y-1.5">
+                  {renamingId === m.id ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        onRename(m.id, renameValue);
+                        setRenamingId(null);
+                      }}
+                      className="flex gap-1"
+                    >
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        className="flex-1 h-7 bg-zinc-950 border border-emerald-500 rounded px-1.5 text-[11px] text-white focus:outline-none"
+                      />
+                      <button type="submit" className="px-2 bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] rounded">OK</button>
+                      <button type="button" onClick={() => setRenamingId(null)} className="px-1.5 bg-zinc-800 text-zinc-300 text-[10px] rounded">X</button>
+                    </form>
+                  ) : (
+                    <p className="text-[11px] font-bold text-white truncate" title={m.name}>{m.name}</p>
+                  )}
+
+                  <div className="flex items-center justify-between text-[9px] text-zinc-500">
+                    <span className="truncate">{m.folder}</span>
+                    <span>{m.sizeBytes ? `${(m.sizeBytes / 1024).toFixed(0)} KB` : m.size}</span>
+                  </div>
+
+                  <div className="flex gap-1 pt-1">
+                    <button
+                      onClick={() => {
+                        setRenamingId(m.id);
+                        setRenameValue(m.name);
+                      }}
+                      className="flex-1 h-7 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-zinc-800"
+                    >
+                      <Pencil className="size-2.5" />
+                      Rename
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Hapus "${m.name}" secara permanen?`)) onDelete(m);
+                      }}
+                      className="h-7 px-2 bg-red-600/15 hover:bg-red-600 text-red-300 hover:text-white text-[10px] font-bold rounded-lg flex items-center justify-center gap-1 border border-red-600/30"
+                      title="Hapus"
+                    >
+                      <Trash2 className="size-2.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
