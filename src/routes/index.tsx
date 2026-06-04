@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Search, MapPin, ChevronRight, Star, BadgeCheck, Heart,
   Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame,
@@ -13,16 +13,30 @@ import { formatRupiah } from "@/lib/format";
 const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
-    const [umkm, products, events, articles, categories] = await Promise.all([
+    const [umkm, products, umkmProducts, events, articles, categories] = await Promise.all([
       supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, review_count").eq("is_published", true).order("rating", { ascending: false }).limit(8),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
+      // Fetch product images grouped by umkm_id for banner fallback
+      supabase.from("products").select("umkm_id, image_url").eq("is_published", true).not("image_url", "is", null).order("created_at", { ascending: false }).limit(100),
       supabase.from("events").select("id, slug, title, cover_url, event_type, location, city, start_at").order("start_at", { ascending: true }).limit(3),
       supabase.from("articles").select("id, slug, title, excerpt, cover_url, category, published_at").order("published_at", { ascending: false }).limit(3),
       supabase.from("categories").select("id, name, slug, icon").order("name"),
     ]);
+
+    // Build map: umkm_id → first 4 product image URLs
+    const productImagesMap = new Map<string, string[]>();
+    for (const p of umkmProducts.data ?? []) {
+      if (!p.umkm_id || !p.image_url) continue;
+      const existing = productImagesMap.get(p.umkm_id) ?? [];
+      if (existing.length < 4) {
+        productImagesMap.set(p.umkm_id, [...existing, p.image_url]);
+      }
+    }
+
     return {
       umkm: umkm.data ?? [],
       products: products.data ?? [],
+      productImagesMap,
       events: events.data ?? [],
       articles: articles.data ?? [],
       categories: categories.data ?? [],
@@ -267,7 +281,11 @@ function PopularUmkm() {
           /* Horizontal scroll on mobile, 4-col grid on desktop */
           <div className="flex overflow-x-auto no-scrollbar gap-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4">
             {data.umkm.map((u) => (
-              <UmkmCard key={u.id} umkm={u} />
+              <UmkmCard
+                key={u.id}
+                umkm={u}
+                productImages={data.productImagesMap.get(u.id) ?? []}
+              />
             ))}
           </div>
         )}
@@ -290,22 +308,74 @@ interface UmkmData {
   [key: string]: unknown;
 }
 
-function UmkmCard({ umkm }: { umkm: UmkmData }) {
+/** Auto-sliding image carousel used as banner fallback */
+function ProductSlideshow({ images, alt }: { images: string[]; alt: string }) {
+  const [idx, setIdx] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (images.length <= 1) return;
+    timerRef.current = setInterval(() => setIdx((i) => (i + 1) % images.length), 2800);
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [images.length]);
+
+  if (images.length === 0) return null;
+
+  return (
+    <>
+      <img
+        key={idx}
+        src={images[idx]}
+        alt={alt}
+        className="absolute inset-0 size-full object-cover transition-opacity duration-700"
+      />
+      {/* subtle dark gradient so overlays stay readable */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+      {/* dot indicators */}
+      {images.length > 1 && (
+        <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1">
+          {images.map((_, i) => (
+            <button
+              key={i}
+              onClick={(e) => { e.preventDefault(); setIdx(i); }}
+              className={`size-1.5 rounded-full transition-colors ${
+                i === idx ? "bg-white" : "bg-white/40"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
+function UmkmCard({ umkm, productImages = [] }: { umkm: UmkmData; productImages?: string[] }) {
   const [liked, setLiked] = useState(false);
   const initials = umkm.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+
+  // Determine what to show in the banner area
+  const hasBanner = !!umkm.banner_url;
+  const hasProductPhotos = productImages.length > 0;
+  const hasLogo = !!umkm.logo_url;
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden ring-1 ring-gray-100 hover:shadow-lg transition-shadow duration-200 shrink-0 w-64 sm:w-auto flex flex-col">
       {/* Image area */}
       <div className="relative h-40 bg-gray-100 overflow-hidden">
-        {umkm.banner_url ? (
-          <img src={umkm.banner_url} alt={umkm.name} className="size-full object-cover" />
-        ) : umkm.logo_url ? (
+        {hasBanner ? (
+          /* 1. UMKM has a dedicated banner → show it */
+          <img src={umkm.banner_url!} alt={umkm.name} className="size-full object-cover" />
+        ) : hasProductPhotos ? (
+          /* 2. No banner but has product photos → auto-slideshow */
+          <ProductSlideshow images={productImages} alt={umkm.name} />
+        ) : hasLogo ? (
+          /* 3. Only logo → blurred logo as background */
           <>
-            <img src={umkm.logo_url} alt="" className="absolute inset-0 size-full object-cover scale-110 blur-lg opacity-50" />
+            <img src={umkm.logo_url!} alt="" className="absolute inset-0 size-full object-cover scale-110 blur-lg opacity-50" />
             <div className="absolute inset-0 bg-gradient-to-br from-green-900/30 to-green-600/20" />
           </>
         ) : (
+          /* 4. Nothing → gradient placeholder */
           <div className="size-full bg-gradient-to-br from-green-100 to-emerald-50 flex items-center justify-center">
             <span className="text-4xl font-black text-green-300">{initials}</span>
           </div>
