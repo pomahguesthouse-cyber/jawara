@@ -294,6 +294,11 @@ function AdminHeroSliderPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   // Undo / Redo stacks
   const [undoStack, setUndoStack] = useState<HeroSlideRow[][]>([]);
   const [redoStack, setRedoStack] = useState<HeroSlideRow[][]>([]);
