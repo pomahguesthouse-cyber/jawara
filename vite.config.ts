@@ -12,22 +12,4 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
-  vite: {
-    ssr: {
-      noExternal: [
-        "@dnd-kit/core",
-        "@dnd-kit/sortable",
-        "@dnd-kit/utilities",
-        "@dnd-kit/modifiers"
-      ]
-    },
-    optimizeDeps: {
-      include: [
-        "@dnd-kit/core",
-        "@dnd-kit/sortable",
-        "@dnd-kit/utilities",
-        "@dnd-kit/modifiers"
-      ]
-    }
-  }
 });
