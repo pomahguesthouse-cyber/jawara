@@ -107,11 +107,59 @@ const HERO_SLIDES = [
   }
 ];
 
+type HeroSlideVM = {
+  id: string | number;
+  image: string;
+  title: string;
+  subtext: string;
+  type: string;
+  btnText?: string | null;
+  btnTo?: string | null;
+  btnSearch?: any;
+};
+
+function useCarousel(length: number) {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (length <= 1) return;
+    timerRef.current = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % length);
+    }, 6000);
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [length]);
+
+  const resetTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+
+  const handlePrev = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    resetTimer();
+    setCurrentSlide((prev) => (prev - 1 + length) % length);
+  };
+  const handleNext = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    resetTimer();
+    setCurrentSlide((prev) => (prev + 1) % length);
+  };
+  const handleDotClick = (idx: number) => {
+    resetTimer();
+    setCurrentSlide(idx);
+  };
+
+  return { currentSlide, handlePrev, handleNext, handleDotClick };
+}
+
 function Hero() {
   const { data } = useSuspenseQuery(homeQueryOptions);
-  
-  // Normalize db schema (snake_case) to match component schema (camelCase)
-  const dbSlides = (data.heroSlides ?? []).map((s) => ({
+
+  // Normalize db schema and filter per device. Slides marked 'both' appear in
+  // both carousels; 'mobile'/'desktop' appear only in their target.
+  const allDbSlides: (HeroSlideVM & { device: string })[] = (data.heroSlides ?? []).map((s: any) => ({
     id: s.id,
     image: s.image,
     title: s.title,
@@ -120,42 +168,21 @@ function Hero() {
     btnText: s.btn_text,
     btnTo: s.btn_to,
     btnSearch: undefined,
+    device: s.device || "both",
   }));
-  
-  const slides = dbSlides.length > 0 ? dbSlides : HERO_SLIDES;
 
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const dbMobile = allDbSlides.filter((s) => s.device === "mobile" || s.device === "both");
+  const dbDesktop = allDbSlides.filter((s) => s.device === "desktop" || s.device === "both");
+
+  const mobileSlides: HeroSlideVM[] = dbMobile.length > 0 ? dbMobile : HERO_SLIDES;
+  const desktopSlides: HeroSlideVM[] = dbDesktop.length > 0 ? dbDesktop : HERO_SLIDES;
+
+  const mobileCarousel = useCarousel(mobileSlides.length);
+  const desktopCarousel = useCarousel(desktopSlides.length);
+
   const [q, setQ] = useState("");
   const [city, setCity] = useState("Semarang");
   const navigate = useNavigate();
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  // Auto-play slideshow
-  useEffect(() => {
-    timerRef.current = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 6000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [slides.length]);
-
-  const handlePrev = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-  };
-
-  const handleNext = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCurrentSlide((prev) => (prev + 1) % slides.length);
-  };
-
-  const handleDotClick = (idx: number) => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setCurrentSlide(idx);
-  };
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,8 +193,8 @@ function Hero() {
     <>
       {/* ─── MOBILE HERO (< md) — vertical, centered, compact search ──────── */}
       <section className="md:hidden relative w-full overflow-hidden bg-gray-900 h-[460px] flex items-end">
-        {slides.map((slide, idx) => {
-          const isActive = idx === currentSlide;
+        {mobileSlides.map((slide, idx) => {
+          const isActive = idx === mobileCarousel.currentSlide;
           return (
             <div
               key={slide.id}
@@ -238,12 +265,12 @@ function Hero() {
 
         {/* Dot Indicators (mobile) */}
         <div className="absolute top-4 left-0 right-0 z-20 flex justify-center gap-1.5">
-          {slides.map((_, idx) => (
+          {mobileSlides.map((_, idx) => (
             <button
               key={idx}
-              onClick={() => handleDotClick(idx)}
+              onClick={() => mobileCarousel.handleDotClick(idx)}
               className={`h-1 rounded-full transition-all cursor-pointer ${
-                idx === currentSlide ? "bg-emerald-400 w-6" : "bg-white/40 w-3"
+                idx === mobileCarousel.currentSlide ? "bg-emerald-400 w-6" : "bg-white/40 w-3"
               }`}
               aria-label={`Ke slide ${idx + 1}`}
             />
@@ -253,8 +280,8 @@ function Hero() {
 
       {/* ─── DESKTOP HERO (md+) — wide, left-aligned, full search bar ──────── */}
       <section className="hidden md:flex relative w-full overflow-hidden bg-gray-900 h-[600px] items-center group">
-        {slides.map((slide, idx) => {
-          const isActive = idx === currentSlide;
+        {desktopSlides.map((slide, idx) => {
+          const isActive = idx === desktopCarousel.currentSlide;
           return (
             <div
               key={slide.id}
@@ -328,14 +355,14 @@ function Hero() {
 
         {/* Navigation Arrows (Desktop Only) */}
         <button
-          onClick={handlePrev}
+          onClick={desktopCarousel.handlePrev}
           className="absolute left-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
           aria-label="Slide sebelumnya"
         >
           <ChevronLeft className="size-5" />
         </button>
         <button
-          onClick={handleNext}
+          onClick={desktopCarousel.handleNext}
           className="absolute right-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
           aria-label="Slide berikutnya"
         >
@@ -344,12 +371,12 @@ function Hero() {
 
         {/* Dot Indicators (desktop) */}
         <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2.5">
-          {slides.map((_, idx) => (
+          {desktopSlides.map((_, idx) => (
             <button
               key={idx}
-              onClick={() => handleDotClick(idx)}
+              onClick={() => desktopCarousel.handleDotClick(idx)}
               className={`size-2.5 rounded-full transition-all cursor-pointer ${
-                idx === currentSlide ? "bg-[#1a6b3c] w-6" : "bg-white/40 hover:bg-white/70"
+                idx === desktopCarousel.currentSlide ? "bg-[#1a6b3c] w-6" : "bg-white/40 hover:bg-white/70"
               }`}
               aria-label={`Ke slide ${idx + 1}`}
             />
