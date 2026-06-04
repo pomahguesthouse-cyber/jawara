@@ -157,8 +157,19 @@ function ProfilPage() {
 
   const { data: existing, isLoading } = useQuery({
     queryKey: ["my-umkm", user.id],
-    queryFn: async () =>
-      (await supabase.from("umkm_profiles").select("*").eq("owner_id", user.id).maybeSingle()).data,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("umkm_profiles")
+        .select("*")
+        .eq("owner_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        console.error("Error fetching my-umkm:", error);
+      }
+      return data;
+    },
   });
 
   useEffect(() => {
@@ -194,19 +205,35 @@ function ProfilPage() {
     try {
       const payload = {
         owner_id: user.id,
-        ...form,
+        name: form.name,
         slug: form.slug || slugify(form.name),
+        description: form.description || null,
+        city: form.city || 'Semarang',
+        district: form.district || null,
+        address: form.address || null,
+        whatsapp: form.whatsapp || null,
+        email: form.email || null,
+        website: form.website || null,
+        instagram: form.instagram || null,
+        facebook: form.facebook || null,
+        logo_url: form.logo_url || null,
+        banner_url: form.banner_url || null,
         category_id: form.category_id || null,
       };
+
       const { error } = umkmId
         ? await supabase.from("umkm_profiles").update(payload).eq("id", umkmId)
         : await supabase.from("umkm_profiles").insert(payload);
+      
       if (error) throw error;
+      
       toast.success("Profil tersimpan");
       qc.invalidateQueries({ queryKey: ["my-umkm"] });
       qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Gagal menyimpan");
+    } catch (err: any) {
+      console.error("Gagal menyimpan profil:", err);
+      const msg = err?.message || err?.details || (typeof err === 'string' ? err : "Gagal menyimpan");
+      toast.error(msg);
     } finally {
       setSaving(false);
     }
