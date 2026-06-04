@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Store, Package, LogOut, Sparkles } from "lucide-react";
+import { LayoutDashboard, Store, Package, LogOut, Sparkles, Shield } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -9,7 +9,19 @@ export const Route = createFileRoute("/_authenticated")({
   beforeLoad: async () => {
     const { data, error } = await supabase.auth.getUser();
     if (error || !data.user) throw redirect({ to: "/auth" });
-    return { user: data.user };
+
+    // Check if the user is a super_admin
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", data.user.id)
+      .eq("role", "super_admin")
+      .maybeSingle();
+
+    return { 
+      user: data.user,
+      isSuperAdmin: !!roleData
+    };
   },
   component: DashboardLayout,
 });
@@ -21,7 +33,7 @@ const navItems = [
 ];
 
 function DashboardLayout() {
-  const { user } = Route.useRouteContext();
+  const { user, isSuperAdmin } = Route.useRouteContext();
   const navigate = useNavigate();
   const [email, setEmail] = useState(user.email ?? "");
 
@@ -33,6 +45,11 @@ function DashboardLayout() {
     navigate({ to: "/" });
   }
 
+  const items = [...navItems];
+  if (isSuperAdmin) {
+    items.push({ to: "/dashboard/admin", label: "Admin", icon: Shield });
+  }
+
   return (
     <div className="min-h-screen flex bg-surface">
       <aside className="hidden lg:flex w-64 flex-col bg-card border-r border-border p-5">
@@ -41,7 +58,7 @@ function DashboardLayout() {
           <span className="font-extrabold text-primary tracking-tight">JAWARA</span>
         </Link>
         <nav className="flex-1 space-y-1">
-          {navItems.map((n) => (
+          {items.map((n) => (
             <Link
               key={n.to}
               to={n.to}
@@ -76,7 +93,7 @@ function DashboardLayout() {
           <button onClick={signOut} className="text-xs text-muted-foreground"><LogOut className="size-4" /></button>
         </div>
         <nav className="flex border-t border-border">
-          {navItems.map((n) => (
+          {items.map((n) => (
             <Link
               key={n.to}
               to={n.to}

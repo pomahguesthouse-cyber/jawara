@@ -22,6 +22,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated.dashboard.index'
 import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated.dashboard.profil'
 import { Route as AuthenticatedDashboardProdukRouteImport } from './routes/_authenticated.dashboard.produk'
+import { Route as AuthenticatedDashboardAdminRouteImport } from './routes/_authenticated.dashboard.admin'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -90,6 +91,12 @@ const AuthenticatedDashboardProdukRoute =
     path: '/produk',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardAdminRoute =
+  AuthenticatedDashboardAdminRouteImport.update({
+    id: '/admin',
+    path: '/admin',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/umkm/$slug': typeof UmkmSlugRoute
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -116,6 +124,7 @@ export interface FileRoutesByTo {
   '/umkm/$slug': typeof UmkmSlugRoute
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -132,6 +141,7 @@ export interface FileRoutesById {
   '/umkm/$slug': typeof UmkmSlugRoute
   '/_authenticated/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/_authenticated/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/umkm/$slug'
     | '/dashboard/produk'
     | '/dashboard/profil'
+    | '/dashboard/admin'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -161,6 +172,7 @@ export interface FileRouteTypes {
     | '/umkm/$slug'
     | '/dashboard/produk'
     | '/dashboard/profil'
+    | '/dashboard/admin'
     | '/dashboard'
   id:
     | '__root__'
@@ -176,6 +188,7 @@ export interface FileRouteTypes {
     | '/umkm/$slug'
     | '/_authenticated/dashboard/produk'
     | '/_authenticated/dashboard/profil'
+    | '/_authenticated/dashboard/admin'
     | '/_authenticated/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -284,12 +297,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardProdukRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/admin': {
+      id: '/_authenticated/dashboard/admin'
+      path: '/admin'
+      fullPath: '/dashboard/admin'
+      preLoaderRoute: typeof AuthenticatedDashboardAdminRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardProdukRoute: typeof AuthenticatedDashboardProdukRoute
   AuthenticatedDashboardProfilRoute: typeof AuthenticatedDashboardProfilRoute
+  AuthenticatedDashboardAdminRoute: typeof AuthenticatedDashboardAdminRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
@@ -297,6 +318,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardProdukRoute: AuthenticatedDashboardProdukRoute,
     AuthenticatedDashboardProfilRoute: AuthenticatedDashboardProfilRoute,
+    AuthenticatedDashboardAdminRoute: AuthenticatedDashboardAdminRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   }
 
