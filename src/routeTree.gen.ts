@@ -9,13 +9,25 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as MarketplaceRouteImport } from './routes/marketplace'
 import { Route as EventRouteImport } from './routes/event'
 import { Route as DirektoriRouteImport } from './routes/direktori'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ArtikelRouteImport } from './routes/artikel'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UmkmSlugRouteImport } from './routes/umkm.$slug'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
+import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated.dashboard.index'
+import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated.dashboard.profil'
+import { Route as AuthenticatedDashboardProdukRouteImport } from './routes/_authenticated.dashboard.produk'
 
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketplaceRoute = MarketplaceRouteImport.update({
   id: '/marketplace',
   path: '/marketplace',
@@ -31,9 +43,18 @@ const DirektoriRoute = DirektoriRouteImport.update({
   path: '/direktori',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArtikelRoute = ArtikelRouteImport.update({
   id: '/artikel',
   path: '/artikel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -46,70 +67,139 @@ const UmkmSlugRoute = UmkmSlugRouteImport.update({
   path: '/umkm/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedDashboardIndexRoute =
+  AuthenticatedDashboardIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardProfilRoute =
+  AuthenticatedDashboardProfilRouteImport.update({
+    id: '/profil',
+    path: '/profil',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
+const AuthenticatedDashboardProdukRoute =
+  AuthenticatedDashboardProdukRouteImport.update({
+    id: '/produk',
+    path: '/produk',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/artikel': typeof ArtikelRoute
+  '/auth': typeof AuthRoute
   '/direktori': typeof DirektoriRoute
   '/event': typeof EventRoute
   '/marketplace': typeof MarketplaceRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/umkm/$slug': typeof UmkmSlugRoute
+  '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
+  '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/artikel': typeof ArtikelRoute
+  '/auth': typeof AuthRoute
   '/direktori': typeof DirektoriRoute
   '/event': typeof EventRoute
   '/marketplace': typeof MarketplaceRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/umkm/$slug': typeof UmkmSlugRoute
+  '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
+  '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/artikel': typeof ArtikelRoute
+  '/auth': typeof AuthRoute
   '/direktori': typeof DirektoriRoute
   '/event': typeof EventRoute
   '/marketplace': typeof MarketplaceRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/umkm/$slug': typeof UmkmSlugRoute
+  '/_authenticated/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
+  '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
+  '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/artikel'
+    | '/auth'
     | '/direktori'
     | '/event'
     | '/marketplace'
+    | '/sitemap.xml'
+    | '/dashboard'
     | '/umkm/$slug'
+    | '/dashboard/produk'
+    | '/dashboard/profil'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/artikel'
+    | '/auth'
     | '/direktori'
     | '/event'
     | '/marketplace'
+    | '/sitemap.xml'
     | '/umkm/$slug'
+    | '/dashboard/produk'
+    | '/dashboard/profil'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
+    | '/_authenticated'
     | '/artikel'
+    | '/auth'
     | '/direktori'
     | '/event'
     | '/marketplace'
+    | '/sitemap.xml'
+    | '/_authenticated/dashboard'
     | '/umkm/$slug'
+    | '/_authenticated/dashboard/produk'
+    | '/_authenticated/dashboard/profil'
+    | '/_authenticated/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   ArtikelRoute: typeof ArtikelRoute
+  AuthRoute: typeof AuthRoute
   DirektoriRoute: typeof DirektoriRoute
   EventRoute: typeof EventRoute
   MarketplaceRoute: typeof MarketplaceRoute
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   UmkmSlugRoute: typeof UmkmSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/marketplace': {
       id: '/marketplace'
       path: '/marketplace'
@@ -131,11 +221,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DirektoriRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/artikel': {
       id: '/artikel'
       path: '/artikel'
       fullPath: '/artikel'
       preLoaderRoute: typeof ArtikelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -152,17 +256,88 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UmkmSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/dashboard/': {
+      id: '/_authenticated/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof AuthenticatedDashboardIndexRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/profil': {
+      id: '/_authenticated/dashboard/profil'
+      path: '/profil'
+      fullPath: '/dashboard/profil'
+      preLoaderRoute: typeof AuthenticatedDashboardProfilRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
+    '/_authenticated/dashboard/produk': {
+      id: '/_authenticated/dashboard/produk'
+      path: '/produk'
+      fullPath: '/dashboard/produk'
+      preLoaderRoute: typeof AuthenticatedDashboardProdukRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
+interface AuthenticatedDashboardRouteChildren {
+  AuthenticatedDashboardProdukRoute: typeof AuthenticatedDashboardProdukRoute
+  AuthenticatedDashboardProfilRoute: typeof AuthenticatedDashboardProfilRoute
+  AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
+}
+
+const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
+  {
+    AuthenticatedDashboardProdukRoute: AuthenticatedDashboardProdukRoute,
+    AuthenticatedDashboardProfilRoute: AuthenticatedDashboardProfilRoute,
+    AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
+  }
+
+const AuthenticatedDashboardRouteWithChildren =
+  AuthenticatedDashboardRoute._addFileChildren(
+    AuthenticatedDashboardRouteChildren,
+  )
+
+interface AuthenticatedRouteChildren {
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRouteWithChildren
+}
+
+const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRouteWithChildren,
+}
+
+const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
+  AuthenticatedRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRoute: AuthenticatedRouteWithChildren,
   ArtikelRoute: ArtikelRoute,
+  AuthRoute: AuthRoute,
   DirektoriRoute: DirektoriRoute,
   EventRoute: EventRoute,
   MarketplaceRoute: MarketplaceRoute,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   UmkmSlugRoute: UmkmSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
