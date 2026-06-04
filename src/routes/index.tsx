@@ -3,8 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import {
   MapPin, ChevronRight, ChevronLeft, Star, BadgeCheck, Heart,
-  Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame, X,
-  MousePointerClick,
+  Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicShell } from "@/components/PublicShell";
@@ -315,27 +314,18 @@ function Hero() {
   const [q, setQ] = useState("");
   const [city, setCity] = useState("Semarang");
   const [searchOpen, setSearchOpen] = useState(false);
-  const [hintVisible, setHintVisible] = useState(true);
   const navigate = useNavigate();
-
-  // Auto-hide the "click me" hint after 8 s even if the user never taps it.
-  useEffect(() => {
-    const t = setTimeout(() => setHintVisible(false), 8000);
-    return () => clearTimeout(t);
-  }, []);
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
   };
 
+  // Icon is a pure toggle: opens the bar when closed, closes it when open.
+  // Form submission happens via Enter inside the input.
   const handleSearchIconClick = (e: React.MouseEvent) => {
-    setHintVisible(false);
-    if (!searchOpen) {
-      e.preventDefault();
-      setSearchOpen(true);
-    }
-    // when open the icon is type=submit and click submits the form naturally
+    e.preventDefault();
+    setSearchOpen((o) => !o);
   };
 
   const mobileSwipe = useSwipe(mobileCarousel.next, mobileCarousel.prev);
@@ -392,17 +382,6 @@ function Hero() {
 
         {/* Mobile search: floating toggle — icon-only collapsed, slides in from right when open */}
         <div className="absolute bottom-6 right-4 z-30 pointer-events-auto">
-          {/* Click hint: shown until the user taps the icon or after 8 s */}
-          {hintVisible && !searchOpen && (
-            <div className="absolute -top-3 -left-1 -translate-x-full pointer-events-none animate-bounce">
-              <div className="relative">
-                <div className="size-8 rounded-full bg-emerald-500 text-white grid place-items-center shadow-lg ring-2 ring-white">
-                  <MousePointerClick className="size-4" />
-                </div>
-                <div className="absolute inset-0 rounded-full ring-2 ring-emerald-400 animate-ping" />
-              </div>
-            </div>
-          )}
           <form
             onSubmit={onSearchSubmit}
             className="flex items-center gap-2"
@@ -412,15 +391,7 @@ function Hero() {
                 searchOpen ? "max-w-[calc(100vw-8.5rem)] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                className="px-3 text-gray-400 active:text-gray-700 shrink-0"
-                aria-label="Tutup pencarian"
-              >
-                <X className="size-4" />
-              </button>
-              <div className="relative flex items-center gap-1 px-2 border-r border-gray-100 shrink-0">
+              <div className="relative flex items-center gap-1 pl-3 pr-2 border-r border-gray-100 shrink-0">
                 <MapPin className="size-3.5 text-[#1a6b3c]" />
                 <select
                   value={city}
@@ -441,12 +412,12 @@ function Hero() {
               </div>
             </div>
             <button
-              type={searchOpen ? "submit" : "button"}
+              type="button"
               onClick={handleSearchIconClick}
               className={`shrink-0 rounded-full bg-white shadow-2xl ring-2 ring-white overflow-hidden transition-[width,height] duration-300 ease-out active:scale-95 ${
                 searchOpen ? "size-20" : "size-12"
               }`}
-              aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
+              aria-label={searchOpen ? "Tutup pencarian" : "Buka pencarian"}
             >
               <img
                 src={searchIconUrl}
@@ -526,15 +497,7 @@ function Hero() {
                 searchOpen ? "max-w-[520px] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
-              <button
-                type="button"
-                onClick={() => setSearchOpen(false)}
-                className="px-3 text-gray-400 hover:text-gray-700 shrink-0"
-                aria-label="Tutup pencarian"
-              >
-                <X className="size-4" />
-              </button>
-              <div className="relative flex items-center gap-1.5 px-3 border-r border-gray-100 shrink-0">
+              <div className="relative flex items-center gap-1.5 pl-4 pr-3 border-r border-gray-100 shrink-0">
                 <MapPin className="size-4 text-[#1a6b3c]" />
                 <select
                   value={city}
@@ -556,10 +519,10 @@ function Hero() {
               </div>
             </div>
             <button
-              type={searchOpen ? "submit" : "button"}
+              type="button"
               onClick={handleSearchIconClick}
               className="size-36 shrink-0 rounded-full bg-white shadow-2xl ring-2 ring-white overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95"
-              aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
+              aria-label={searchOpen ? "Tutup pencarian" : "Buka pencarian"}
             >
               <img
                 src={searchIconUrl}
