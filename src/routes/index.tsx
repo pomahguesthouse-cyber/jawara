@@ -557,15 +557,16 @@ function Hero() {
 function CategoriesStrip() {
   const { data } = useSuspenseQuery(homeQueryOptions);
   return (
-    <section className="border-y border-gray-100 bg-gray-50/50">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5">
+    <section className="border-b border-gray-100 bg-gray-50/50">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-2 pb-5">
         <div className="flex overflow-x-auto no-scrollbar gap-2 sm:gap-3 sm:flex-wrap sm:justify-center">
-          {data.categories.map((c) => (
+          {data.categories.map((c, idx) => (
             <Link
               key={c.id}
               to="/direktori"
               search={{ kategori: c.slug } as never}
-              className="group flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl hover:bg-white hover:shadow-sm transition shrink-0"
+              style={{ animationDelay: `${idx * 80}ms`, animationDuration: "900ms" }}
+              className="group flex flex-col items-center gap-1.5 px-4 py-3 rounded-2xl hover:bg-white hover:shadow-sm transition shrink-0 animate-fade-up"
             >
               <div className="size-10 sm:size-12 rounded-2xl bg-white shadow-sm text-xl sm:text-2xl grid place-items-center group-hover:scale-110 transition ring-1 ring-gray-100">
                 {c.icon ?? "🏪"}
