@@ -116,7 +116,68 @@ type HeroSlideVM = {
   btnText?: string | null;
   btnTo?: string | null;
   btnSearch?: any;
+  bgType?: "image" | "video" | "gradient" | "solid" | "ai";
+  videoUrl?: string;
+  videoPoster?: string;
 };
+
+// Convert various video URLs (YouTube, Vimeo, direct .mp4) into something
+// we can render as background. Returns either { kind: 'iframe', src } or
+// { kind: 'video', src }.
+function resolveHeroVideo(url: string): { kind: "iframe" | "video"; src: string } | null {
+  if (!url) return null;
+  const yt = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([\w-]{6,})/);
+  if (yt) {
+    const id = yt[1];
+    return {
+      kind: "iframe",
+      src: `https://www.youtube.com/embed/${id}?autoplay=1&mute=1&controls=0&loop=1&playlist=${id}&modestbranding=1&playsinline=1&rel=0`,
+    };
+  }
+  const vimeo = url.match(/vimeo\.com\/(\d+)/);
+  if (vimeo) {
+    return {
+      kind: "iframe",
+      src: `https://player.vimeo.com/video/${vimeo[1]}?autoplay=1&muted=1&loop=1&background=1`,
+    };
+  }
+  return { kind: "video", src: url };
+}
+
+function HeroBackground({ slide }: { slide: HeroSlideVM }) {
+  if (slide.bgType === "video" && slide.videoUrl) {
+    const v = resolveHeroVideo(slide.videoUrl);
+    if (v?.kind === "iframe") {
+      return (
+        <div className="absolute inset-0 size-full overflow-hidden">
+          <iframe
+            src={v.src}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[177.78vh] min-w-full h-[56.25vw] min-h-full pointer-events-none"
+            allow="autoplay; encrypted-media; picture-in-picture"
+            title=""
+          />
+          {slide.videoPoster && (
+            <img src={slide.videoPoster} alt="" className="absolute inset-0 size-full object-cover -z-10" />
+          )}
+        </div>
+      );
+    }
+    if (v?.kind === "video") {
+      return (
+        <video
+          src={v.src}
+          poster={slide.videoPoster || slide.image}
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 size-full object-cover"
+        />
+      );
+    }
+  }
+  return <img src={slide.image} alt="" className="absolute inset-0 size-full object-cover object-center" />;
+}
 
 function useCarousel(length: number) {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -159,17 +220,23 @@ function Hero() {
 
   // Normalize db schema and filter per device. Slides marked 'both' appear in
   // both carousels; 'mobile'/'desktop' appear only in their target.
-  const allDbSlides: (HeroSlideVM & { device: string })[] = (data.heroSlides ?? []).map((s: any) => ({
-    id: s.id,
-    image: s.image,
-    title: s.title,
-    subtext: s.subtext,
-    type: s.type,
-    btnText: s.btn_text,
-    btnTo: s.btn_to,
-    btnSearch: undefined,
-    device: s.device || "both",
-  }));
+  const allDbSlides: (HeroSlideVM & { device: string })[] = (data.heroSlides ?? []).map((s: any) => {
+    const bg = s.settings?.background ?? {};
+    return {
+      id: s.id,
+      image: bg.image || s.image,
+      title: s.settings?.headline?.text || s.title,
+      subtext: s.settings?.subheadline?.text || s.subtext,
+      type: s.type,
+      btnText: s.btn_text,
+      btnTo: s.btn_to,
+      btnSearch: undefined,
+      bgType: bg.type || "image",
+      videoUrl: bg.videoUrl || undefined,
+      videoPoster: bg.videoPoster || undefined,
+      device: s.device || "both",
+    };
+  });
 
   const dbMobile = allDbSlides.filter((s) => s.device === "mobile" || s.device === "both");
   const dbDesktop = allDbSlides.filter((s) => s.device === "desktop" || s.device === "both");
@@ -202,7 +269,7 @@ function Hero() {
                 isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              <img src={slide.image} alt="" className="absolute inset-0 size-full object-cover object-center" />
+              <HeroBackground slide={slide} />
               {/* Strong vertical gradient: image visible up top, dark below for text */}
               <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black/95" />
               <div className="absolute inset-x-0 bottom-28 px-5 z-10 text-center text-white">
@@ -289,7 +356,7 @@ function Hero() {
                 isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
               }`}
             >
-              <img src={slide.image} alt="" className="absolute inset-0 size-full object-cover object-center" />
+              <HeroBackground slide={slide} />
               <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/10" />
               <div className="relative z-10 mx-auto max-w-7xl w-full px-8 flex flex-col justify-center">
                 <div className="max-w-2xl text-white space-y-6 py-16">
