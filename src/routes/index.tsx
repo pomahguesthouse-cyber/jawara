@@ -14,7 +14,7 @@ const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
     const [umkm, products, umkmProducts, events, articles, categories] = await Promise.all([
-      supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified").eq("is_published", true).order("rating", { ascending: false }).limit(8),
+      supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(name)").eq("is_published", true).order("rating", { ascending: false }).limit(8),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
       supabase.from("products").select("umkm_id, image_url").eq("is_published", true).not("image_url", "is", null).order("created_at", { ascending: false }).limit(100),
@@ -279,7 +279,7 @@ function PopularUmkm() {
           </div>
         ) : (
           /* Horizontal scroll on mobile, 4-col grid on desktop */
-          <div className="flex overflow-x-auto no-scrollbar gap-4 -mx-4 px-4 pb-4 sm:pb-0 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex overflow-x-auto sm:overflow-visible no-scrollbar gap-4 -mx-4 px-4 pb-4 sm:pb-0 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4">
             {data.umkm.map((u) => (
               <UmkmCard
                 key={u.id}
@@ -304,6 +304,7 @@ interface UmkmData {
   banner_url?: string | null;
   rating: number | null;
   is_verified?: boolean;
+  category?: { name: string } | null;
   [key: string]: unknown;
 }
 
@@ -443,7 +444,7 @@ function UmkmCard({ umkm, productImages = [] }: { umkm: UmkmData; productImages?
         <div className="flex items-center justify-between gap-2 mt-auto pt-1">
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-[#1a6b3c]">
-              UMKM
+              {(umkm.category as { name: string })?.name || "UMKM"}
             </span>
             <span className="text-[10px] text-gray-400">0 Produk</span>
           </div>

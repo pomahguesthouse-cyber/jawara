@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { toast } from "sonner";
 import { z } from "zod";
 
@@ -63,8 +62,13 @@ function AuthPage() {
   async function handleGoogle() {
     setLoading(true);
     try {
-      const res = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin + "/dashboard" });
-      if (res.error) throw res.error;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`,
+        },
+      });
+      if (error) throw error;
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Gagal masuk dengan Google");
       setLoading(false);
