@@ -32,6 +32,7 @@ import {
 
 // ─── Route Definition ────────────────────────────────────────────────────────
 export const Route = createFileRoute("/_authenticated/dashboard/admin/hero")({
+  ssr: false,
   beforeLoad: ({ context }) => {
     if (!context.isSuperAdmin) {
       toast.error("Akses ditolak: Hanya administrator yang diizinkan.");
