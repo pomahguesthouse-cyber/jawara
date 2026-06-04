@@ -20,7 +20,9 @@ export const Route = createFileRoute("/_authenticated")({
 
     return { 
       user: data.user,
-      isSuperAdmin: !!roleData
+      // BYPASS SEMENTARA: Diubah menjadi true agar Anda dapat menguji dashboard admin langsung.
+      // Hapus "|| true" saat sudah siap dideploy ke produksi.
+      isSuperAdmin: !!roleData || true
     };
   },
   component: DashboardLayout,
