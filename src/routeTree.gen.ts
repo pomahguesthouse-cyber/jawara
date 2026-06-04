@@ -9,38 +9,135 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MarketplaceRouteImport } from './routes/marketplace'
+import { Route as EventRouteImport } from './routes/event'
+import { Route as DirektoriRouteImport } from './routes/direktori'
+import { Route as ArtikelRouteImport } from './routes/artikel'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as UmkmSlugRouteImport } from './routes/umkm.$slug'
 
+const MarketplaceRoute = MarketplaceRouteImport.update({
+  id: '/marketplace',
+  path: '/marketplace',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventRoute = EventRouteImport.update({
+  id: '/event',
+  path: '/event',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DirektoriRoute = DirektoriRouteImport.update({
+  id: '/direktori',
+  path: '/direktori',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArtikelRoute = ArtikelRouteImport.update({
+  id: '/artikel',
+  path: '/artikel',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UmkmSlugRoute = UmkmSlugRouteImport.update({
+  id: '/umkm/$slug',
+  path: '/umkm/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/artikel': typeof ArtikelRoute
+  '/direktori': typeof DirektoriRoute
+  '/event': typeof EventRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/umkm/$slug': typeof UmkmSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/artikel': typeof ArtikelRoute
+  '/direktori': typeof DirektoriRoute
+  '/event': typeof EventRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/umkm/$slug': typeof UmkmSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/artikel': typeof ArtikelRoute
+  '/direktori': typeof DirektoriRoute
+  '/event': typeof EventRoute
+  '/marketplace': typeof MarketplaceRoute
+  '/umkm/$slug': typeof UmkmSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/artikel'
+    | '/direktori'
+    | '/event'
+    | '/marketplace'
+    | '/umkm/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/artikel'
+    | '/direktori'
+    | '/event'
+    | '/marketplace'
+    | '/umkm/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/artikel'
+    | '/direktori'
+    | '/event'
+    | '/marketplace'
+    | '/umkm/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ArtikelRoute: typeof ArtikelRoute
+  DirektoriRoute: typeof DirektoriRoute
+  EventRoute: typeof EventRoute
+  MarketplaceRoute: typeof MarketplaceRoute
+  UmkmSlugRoute: typeof UmkmSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/marketplace': {
+      id: '/marketplace'
+      path: '/marketplace'
+      fullPath: '/marketplace'
+      preLoaderRoute: typeof MarketplaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/event': {
+      id: '/event'
+      path: '/event'
+      fullPath: '/event'
+      preLoaderRoute: typeof EventRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/direktori': {
+      id: '/direktori'
+      path: '/direktori'
+      fullPath: '/direktori'
+      preLoaderRoute: typeof DirektoriRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/artikel': {
+      id: '/artikel'
+      path: '/artikel'
+      fullPath: '/artikel'
+      preLoaderRoute: typeof ArtikelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +145,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/umkm/$slug': {
+      id: '/umkm/$slug'
+      path: '/umkm/$slug'
+      fullPath: '/umkm/$slug'
+      preLoaderRoute: typeof UmkmSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ArtikelRoute: ArtikelRoute,
+  DirektoriRoute: DirektoriRoute,
+  EventRoute: EventRoute,
+  MarketplaceRoute: MarketplaceRoute,
+  UmkmSlugRoute: UmkmSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
