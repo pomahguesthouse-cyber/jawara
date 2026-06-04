@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, redirect, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LayoutDashboard, Store, Package, LogOut, Sparkles, Shield } from "lucide-react";
+import { LayoutDashboard, Store, Package, LogOut, Sparkles, Shield, Layers } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated")({
@@ -46,9 +46,11 @@ function DashboardLayout() {
     navigate({ to: "/" });
   }
 
-  const items = [...navItems];
+  // Combined flat list for mobile navigation (max 5 items)
+  const mobileItems = [...navItems];
   if (isSuperAdmin) {
-    items.push({ to: "/dashboard/admin", label: "Admin", icon: Shield });
+    mobileItems.push({ to: "/dashboard/admin/hero", label: "Hero", icon: Layers });
+    mobileItems.push({ to: "/dashboard/admin", label: "Admin", icon: Shield });
   }
 
   return (
@@ -58,20 +60,56 @@ function DashboardLayout() {
           <img src="/logo.png" alt="JAWARA Logo" className="h-9 w-auto object-contain" />
           <span className="font-extrabold text-primary tracking-tight">JAWARA</span>
         </Link>
-        <nav className="flex-1 space-y-1">
-          {items.map((n) => (
-            <Link
-              key={n.to}
-              to={n.to}
-              activeOptions={{ exact: n.to === "/dashboard" }}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition"
-              activeProps={{ className: "bg-primary-soft text-primary font-semibold" }}
-            >
-              <n.icon className="size-4" />
-              {n.label}
-            </Link>
-          ))}
+        
+        <nav className="flex-1 space-y-6">
+          {/* Main Group */}
+          <div className="space-y-1">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">Dashboard</p>
+            {navItems.map((n) => (
+              <Link
+                key={n.to}
+                to={n.to}
+                activeOptions={{ exact: n.to === "/dashboard" }}
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition"
+                activeProps={{ className: "bg-primary-soft text-primary font-semibold" }}
+              >
+                <n.icon className="size-4" />
+                {n.label}
+              </Link>
+            ))}
+          </div>
+
+          {/* Admin: Content Management Group */}
+          {isSuperAdmin && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">Content Management</p>
+              <Link
+                to="/dashboard/admin/hero"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition"
+                activeProps={{ className: "bg-primary-soft text-primary font-semibold" }}
+              >
+                <Layers className="size-4" />
+                Hero Slider
+              </Link>
+            </div>
+          )}
+
+          {/* Admin: Core Administration Group */}
+          {isSuperAdmin && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider px-3 mb-2">Admin Panel</p>
+              <Link
+                to="/dashboard/admin"
+                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground transition"
+                activeProps={{ className: "bg-primary-soft text-primary font-semibold" }}
+              >
+                <Shield className="size-4" />
+                Manajemen Data
+              </Link>
+            </div>
+          )}
         </nav>
+
         <div className="mt-6 p-3 rounded-xl bg-primary-soft text-primary text-xs">
           <p className="flex items-center gap-1.5 font-bold"><Sparkles className="size-3.5" />Segera</p>
           <p className="mt-1 text-primary/80">AI Assistant, Landing Page Builder, dan Chatbot otomatis.</p>
@@ -94,7 +132,7 @@ function DashboardLayout() {
           <button onClick={signOut} className="text-xs text-muted-foreground"><LogOut className="size-4" /></button>
         </div>
         <nav className="flex border-t border-border">
-          {items.map((n) => (
+          {mobileItems.map((n) => (
             <Link
               key={n.to}
               to={n.to}

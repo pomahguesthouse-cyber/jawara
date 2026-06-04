@@ -23,6 +23,7 @@ import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authe
 import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated.dashboard.profil'
 import { Route as AuthenticatedDashboardProdukRouteImport } from './routes/_authenticated.dashboard.produk'
 import { Route as AuthenticatedDashboardAdminRouteImport } from './routes/_authenticated.dashboard.admin'
+import { Route as AuthenticatedDashboardAdminHeroRouteImport } from './routes/_authenticated.dashboard.admin.hero'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -97,6 +98,12 @@ const AuthenticatedDashboardAdminRoute =
     path: '/admin',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
+const AuthenticatedDashboardAdminHeroRoute =
+  AuthenticatedDashboardAdminHeroRouteImport.update({
+    id: '/admin/hero',
+    path: '/admin/hero',
+    getParentRoute: () => AuthenticatedDashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/dashboard/admin/hero': typeof AuthenticatedDashboardAdminHeroRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -125,6 +133,7 @@ export interface FileRoutesByTo {
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/dashboard/admin/hero': typeof AuthenticatedDashboardAdminHeroRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -142,6 +151,7 @@ export interface FileRoutesById {
   '/_authenticated/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
   '/_authenticated/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
+  '/_authenticated/dashboard/admin/hero': typeof AuthenticatedDashboardAdminHeroRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -159,6 +169,7 @@ export interface FileRouteTypes {
     | '/dashboard/produk'
     | '/dashboard/profil'
     | '/dashboard/admin'
+    | '/dashboard/admin/hero'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/dashboard/produk'
     | '/dashboard/profil'
     | '/dashboard/admin'
+    | '/dashboard/admin/hero'
     | '/dashboard'
   id:
     | '__root__'
@@ -189,6 +201,7 @@ export interface FileRouteTypes {
     | '/_authenticated/dashboard/produk'
     | '/_authenticated/dashboard/profil'
     | '/_authenticated/dashboard/admin'
+    | '/_authenticated/dashboard/admin/hero'
     | '/_authenticated/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -304,6 +317,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardAdminRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
+    '/_authenticated/dashboard/admin/hero': {
+      id: '/_authenticated/dashboard/admin/hero'
+      path: '/admin/hero'
+      fullPath: '/dashboard/admin/hero'
+      preLoaderRoute: typeof AuthenticatedDashboardAdminHeroRouteImport
+      parentRoute: typeof AuthenticatedDashboardRoute
+    }
   }
 }
 
@@ -311,6 +331,7 @@ interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardProdukRoute: typeof AuthenticatedDashboardProdukRoute
   AuthenticatedDashboardProfilRoute: typeof AuthenticatedDashboardProfilRoute
   AuthenticatedDashboardAdminRoute: typeof AuthenticatedDashboardAdminRoute
+  AuthenticatedDashboardAdminHeroRoute: typeof AuthenticatedDashboardAdminHeroRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
@@ -319,6 +340,7 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
     AuthenticatedDashboardProdukRoute: AuthenticatedDashboardProdukRoute,
     AuthenticatedDashboardProfilRoute: AuthenticatedDashboardProfilRoute,
     AuthenticatedDashboardAdminRoute: AuthenticatedDashboardAdminRoute,
+    AuthenticatedDashboardAdminHeroRoute: AuthenticatedDashboardAdminHeroRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   }
 

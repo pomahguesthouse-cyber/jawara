@@ -13,7 +13,7 @@ import { formatRupiah } from "@/lib/format";
 const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
-    const [umkm, products, umkmProducts, events, articles, categories] = await Promise.all([
+    const [umkm, products, umkmProducts, events, articles, categories, heroSlidesResult] = await Promise.all([
       supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(name)").eq("is_published", true).order("rating", { ascending: false }).limit(8),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
@@ -21,6 +21,10 @@ const homeQueryOptions = queryOptions({
       supabase.from("events").select("id, slug, title, cover_url, event_type, location, city, start_at").order("start_at", { ascending: true }).limit(3),
       supabase.from("articles").select("id, slug, title, excerpt, cover_url, category, published_at").order("published_at", { ascending: false }).limit(3),
       supabase.from("categories").select("id, name, slug, icon").order("name"),
+      supabase.from("hero_slides").select("*").order("sort_order", { ascending: true }).then(
+        (res) => (res.error ? { data: [] } : res),
+        () => ({ data: [] })
+      ),
     ]);
 
     // Build map: umkm_id → first 4 product image URLs
@@ -33,6 +37,8 @@ const homeQueryOptions = queryOptions({
       }
     }
 
+    const heroSlides = (heroSlidesResult?.data ?? []) as any[];
+
     return {
       umkm: umkm.data ?? [],
       products: products.data ?? [],
@@ -40,6 +46,7 @@ const homeQueryOptions = queryOptions({
       events: events.data ?? [],
       articles: articles.data ?? [],
       categories: categories.data ?? [],
+      heroSlides,
     };
   },
 });
@@ -101,6 +108,22 @@ const HERO_SLIDES = [
 ];
 
 function Hero() {
+  const { data } = useSuspenseQuery(homeQueryOptions);
+  
+  // Normalize db schema (snake_case) to match component schema (camelCase)
+  const dbSlides = (data.heroSlides ?? []).map((s) => ({
+    id: s.id,
+    image: s.image,
+    title: s.title,
+    subtext: s.subtext,
+    type: s.type,
+    btnText: s.btn_text,
+    btnTo: s.btn_to,
+    btnSearch: undefined,
+  }));
+  
+  const slides = dbSlides.length > 0 ? dbSlides : HERO_SLIDES;
+
   const [currentSlide, setCurrentSlide] = useState(0);
   const [q, setQ] = useState("");
   const [city, setCity] = useState("Semarang");
@@ -110,23 +133,23 @@ function Hero() {
   // Auto-play slideshow
   useEffect(() => {
     timerRef.current = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, []);
+  }, [slides.length]);
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (timerRef.current) clearInterval(timerRef.current);
-    setCurrentSlide((prev) => (prev - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (timerRef.current) clearInterval(timerRef.current);
-    setCurrentSlide((prev) => (prev + 1) % HERO_SLIDES.length);
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
 
   const handleDotClick = (idx: number) => {
@@ -137,7 +160,7 @@ function Hero() {
   return (
     <section className="relative w-full overflow-hidden bg-gray-900 min-h-[520px] sm:h-[580px] flex items-center group">
       {/* Slides */}
-      {HERO_SLIDES.map((slide, idx) => {
+      {slides.map((slide, idx) => {
         const isActive = idx === currentSlide;
         return (
           <div
@@ -251,7 +274,7 @@ function Hero() {
 
       {/* Dot Indicators */}
       <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2.5">
-        {HERO_SLIDES.map((_, idx) => (
+        {slides.map((_, idx) => (
           <button
             key={idx}
             onClick={() => handleDotClick(idx)}
