@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import {
   MapPin, ChevronRight, ChevronLeft, Star, BadgeCheck, Heart,
   Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame, X,
+  MousePointerClick,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicShell } from "@/components/PublicShell";
@@ -314,7 +315,14 @@ function Hero() {
   const [q, setQ] = useState("");
   const [city, setCity] = useState("Semarang");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [hintVisible, setHintVisible] = useState(true);
   const navigate = useNavigate();
+
+  // Auto-hide the "click me" hint after 8 s even if the user never taps it.
+  useEffect(() => {
+    const t = setTimeout(() => setHintVisible(false), 8000);
+    return () => clearTimeout(t);
+  }, []);
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,6 +330,7 @@ function Hero() {
   };
 
   const handleSearchIconClick = (e: React.MouseEvent) => {
+    setHintVisible(false);
     if (!searchOpen) {
       e.preventDefault();
       setSearchOpen(true);
@@ -383,6 +392,17 @@ function Hero() {
 
         {/* Mobile search: floating toggle — icon-only collapsed, slides in from right when open */}
         <div className="absolute bottom-6 right-4 z-30 pointer-events-auto">
+          {/* Click hint: shown until the user taps the icon or after 8 s */}
+          {hintVisible && !searchOpen && (
+            <div className="absolute -top-3 -left-1 -translate-x-full pointer-events-none animate-bounce">
+              <div className="relative">
+                <div className="size-8 rounded-full bg-emerald-500 text-white grid place-items-center shadow-lg ring-2 ring-white">
+                  <MousePointerClick className="size-4" />
+                </div>
+                <div className="absolute inset-0 rounded-full ring-2 ring-emerald-400 animate-ping" />
+              </div>
+            </div>
+          )}
           <form
             onSubmit={onSearchSubmit}
             className="flex items-center gap-2"
@@ -423,7 +443,9 @@ function Hero() {
             <button
               type={searchOpen ? "submit" : "button"}
               onClick={handleSearchIconClick}
-              className="size-28 shrink-0 rounded-full bg-white shadow-2xl ring-2 ring-white overflow-hidden transition-transform duration-300 active:scale-95"
+              className={`shrink-0 rounded-full bg-white shadow-2xl ring-2 ring-white overflow-hidden transition-[width,height] duration-300 ease-out active:scale-95 ${
+                searchOpen ? "size-20" : "size-12"
+              }`}
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
