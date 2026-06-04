@@ -31,8 +31,8 @@ export const Route = createFileRoute("/umkm/$slug")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(umkmQuery(params.slug)),
   head: ({ params }) => ({
     meta: [
-      { title: `UMKM ${params.slug} — Jateng Hub` },
-      { name: "description", content: `Profil UMKM dan katalog produk di Jateng Hub.` },
+      { title: `UMKM ${params.slug} — JAWARA` },
+      { name: "description", content: `Profil UMKM dan katalog produk di JAWARA.` },
     ],
   }),
   notFoundComponent: () => (

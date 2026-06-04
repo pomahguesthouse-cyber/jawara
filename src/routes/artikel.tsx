@@ -16,7 +16,7 @@ export const Route = createFileRoute("/artikel")({
   loader: ({ context }) => context.queryClient.ensureQueryData(articlesQuery),
   head: () => ({
     meta: [
-      { title: "Artikel & Edukasi UMKM — Jateng Hub" },
+      { title: "Artikel & Edukasi UMKM — JAWARA" },
       { name: "description", content: "Tips, panduan, dan edukasi bisnis untuk UMKM Jawa Tengah." },
     ],
   }),

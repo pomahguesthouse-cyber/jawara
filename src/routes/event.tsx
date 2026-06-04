@@ -17,7 +17,7 @@ export const Route = createFileRoute("/event")({
   loader: ({ context }) => context.queryClient.ensureQueryData(eventsQuery),
   head: () => ({
     meta: [
-      { title: "Event UMKM Jawa Tengah — Jateng Hub" },
+      { title: "Event UMKM Jawa Tengah — JAWARA" },
       { name: "description", content: "Pameran, bazaar, dan pelatihan UMKM Jawa Tengah." },
     ],
   }),

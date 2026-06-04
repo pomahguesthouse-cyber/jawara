@@ -39,7 +39,7 @@ export const Route = createFileRoute("/direktori")({
   loader: ({ context, deps }) => context.queryClient.ensureQueryData(directoryQueryOptions(deps)),
   head: () => ({
     meta: [
-      { title: "Direktori UMKM Jawa Tengah — Jateng Hub" },
+      { title: "Direktori UMKM Jawa Tengah — JAWARA" },
       { name: "description", content: "Jelajahi ribuan UMKM Jawa Tengah berdasarkan kota, kategori, dan rating." },
       { property: "og:title", content: "Direktori UMKM Jawa Tengah" },
       { property: "og:description", content: "Cari UMKM berkualitas di setiap kabupaten/kota Jawa Tengah." },

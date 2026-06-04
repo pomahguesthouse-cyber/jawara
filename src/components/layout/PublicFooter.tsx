@@ -7,8 +7,8 @@ export function PublicFooter() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-10">
           <div className="col-span-2">
             <div className="flex items-center gap-2 mb-4">
-              <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground font-extrabold">J</div>
-              <span className="font-extrabold text-primary tracking-tight text-lg">Jateng Hub</span>
+              <img src="/logo.png" alt="JAWARA Logo" className="h-9 w-auto object-contain" />
+              <span className="font-extrabold text-primary tracking-tight text-lg">JAWARA</span>
             </div>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed">
               Memberdayakan ekonomi lokal Jawa Tengah melalui platform digital, AI, dan kolaborasi komunitas UMKM.
@@ -34,7 +34,7 @@ export function PublicFooter() {
           </div>
         </div>
         <div className="mt-12 pt-6 border-t border-border flex flex-col md:flex-row justify-between gap-3 text-xs text-muted-foreground">
-          <p>© {new Date().getFullYear()} UMKM Jateng Hub. Semua hak dilindungi.</p>
+          <p>© {new Date().getFullYear()} JAWARA. Semua hak dilindungi.</p>
           <p className="font-medium">Membangun ekonomi lokal Jawa Tengah.</p>
         </div>
       </div>

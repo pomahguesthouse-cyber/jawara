@@ -37,8 +37,8 @@ function DashboardLayout() {
     <div className="min-h-screen flex bg-surface">
       <aside className="hidden lg:flex w-64 flex-col bg-card border-r border-border p-5">
         <Link to="/" className="flex items-center gap-2 mb-8">
-          <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground font-extrabold">J</div>
-          <span className="font-extrabold text-primary tracking-tight">Jateng Hub</span>
+          <img src="/logo.png" alt="JAWARA Logo" className="h-9 w-auto object-contain" />
+          <span className="font-extrabold text-primary tracking-tight">JAWARA</span>
         </Link>
         <nav className="flex-1 space-y-1">
           {navItems.map((n) => (
@@ -70,8 +70,8 @@ function DashboardLayout() {
       <div className="lg:hidden fixed top-0 inset-x-0 z-30 bg-card border-b border-border">
         <div className="flex items-center justify-between h-14 px-4">
           <Link to="/" className="flex items-center gap-2">
-            <div className="grid size-8 place-items-center rounded-lg bg-primary text-primary-foreground font-extrabold text-sm">J</div>
-            <span className="font-bold text-primary">Jateng Hub</span>
+            <img src="/logo.png" alt="JAWARA Logo" className="h-7 w-auto object-contain" />
+            <span className="font-bold text-primary">JAWARA</span>
           </Link>
           <button onClick={signOut} className="text-xs text-muted-foreground"><LogOut className="size-4" /></button>
         </div>

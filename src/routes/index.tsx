@@ -31,9 +31,9 @@ const homeQueryOptions = queryOptions({
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "UMKM Jateng Hub — Temukan UMKM Terbaik Jawa Tengah" },
+      { title: "JAWARA — Temukan UMKM Terbaik Jawa Tengah" },
       { name: "description", content: "Direktori digital UMKM Jawa Tengah. Jelajahi ribuan UMKM, produk lokal, event, dan tips bisnis dengan dukungan AI." },
-      { property: "og:title", content: "UMKM Jateng Hub" },
+      { property: "og:title", content: "JAWARA" },
       { property: "og:description", content: "Direktori digital UMKM Jawa Tengah dengan dukungan AI." },
     ],
   }),

@@ -12,7 +12,7 @@ export const Route = createFileRoute("/auth")({
     const { data } = await supabase.auth.getSession();
     if (data.session) throw redirect({ to: "/dashboard" });
   },
-  head: () => ({ meta: [{ title: "Masuk / Daftar — Jateng Hub" }] }),
+  head: () => ({ meta: [{ title: "Masuk / Daftar — JAWARA" }] }),
   component: AuthPage,
 });
 
@@ -75,12 +75,12 @@ function AuthPage() {
     <div className="min-h-screen grid lg:grid-cols-2 bg-background">
       <div className="hidden lg:flex flex-col justify-between p-12 bg-primary text-primary-foreground relative overflow-hidden">
         <Link to="/" className="flex items-center gap-2 relative z-10">
-          <div className="grid size-10 place-items-center rounded-xl bg-primary-foreground text-primary font-extrabold">J</div>
-          <span className="font-extrabold text-xl">Jateng Hub</span>
+          <img src="/logo.png" alt="JAWARA Logo" className="h-10 w-auto object-contain brightness-0 invert" />
+          <span className="font-extrabold text-xl">JAWARA</span>
         </Link>
         <div className="relative z-10 max-w-md">
           <h2 className="text-4xl font-extrabold tracking-tight leading-tight">
-            Bangun masa depan digital UMKM Anda bersama Jateng Hub.
+            Bangun masa depan digital UMKM Anda bersama JAWARA.
           </h2>
           <p className="mt-4 text-primary-foreground/80">
             Kelola produk, profil usaha, dan manfaatkan AI untuk pemasaran — semua dalam satu platform.
@@ -92,8 +92,8 @@ function AuthPage() {
       <div className="flex flex-col justify-center p-8 sm:p-12">
         <div className="mx-auto w-full max-w-sm">
           <Link to="/" className="lg:hidden flex items-center gap-2 mb-8">
-            <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground font-extrabold">J</div>
-            <span className="font-extrabold text-primary text-lg">Jateng Hub</span>
+            <img src="/logo.png" alt="JAWARA Logo" className="h-9 w-auto object-contain" />
+            <span className="font-extrabold text-primary text-lg">JAWARA</span>
           </Link>
           <h1 className="text-3xl font-extrabold tracking-tight">
             {mode === "login" ? "Masuk ke akun" : "Daftarkan UMKM"}

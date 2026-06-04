@@ -24,12 +24,14 @@ export function PublicNav() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <Link to="/" className="flex items-center gap-2 group">
-          <div className="grid size-9 place-items-center rounded-xl bg-primary text-primary-foreground font-extrabold">
-            J
-          </div>
+          <img 
+            src="/logo.png" 
+            alt="JAWARA Logo" 
+            className="h-10 w-auto object-contain transition-transform group-hover:scale-105" 
+          />
           <div className="flex flex-col leading-none">
-            <span className="font-extrabold text-primary tracking-tight text-lg">Jateng Hub</span>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">UMKM Platform</span>
+            <span className="font-extrabold text-primary tracking-tight text-lg">JAWARA</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Jaringan Wirausaha</span>
           </div>
         </Link>
 

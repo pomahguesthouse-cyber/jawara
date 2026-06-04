@@ -81,7 +81,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "JAWARA — Jaringan Wirausaha Nusantara - Jawa Tengah" },
       { name: "description", content: "Platform digital UMKM Jawa Tengah: temukan ribuan UMKM, produk lokal, event, dan tips bisnis dalam satu tempat." },
-      { name: "author", content: "UMKM Jateng Hub" },
+      { name: "author", content: "JAWARA" },
       { property: "og:title", content: "JAWARA — Jaringan Wirausaha Nusantara - Jawa Tengah" },
       { property: "og:description", content: "Platform digital UMKM Jawa Tengah: temukan ribuan UMKM, produk lokal, event, dan tips bisnis dalam satu tempat." },
       { property: "og:type", content: "website" },

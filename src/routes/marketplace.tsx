@@ -21,7 +21,7 @@ export const Route = createFileRoute("/marketplace")({
   loader: ({ context }) => context.queryClient.ensureQueryData(marketQuery),
   head: () => ({
     meta: [
-      { title: "Marketplace UMKM Jawa Tengah — Jateng Hub" },
+      { title: "Marketplace UMKM Jawa Tengah — JAWARA" },
       { name: "description", content: "Belanja produk lokal terbaik dari UMKM seluruh Jawa Tengah." },
     ],
   }),
