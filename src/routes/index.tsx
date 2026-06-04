@@ -406,7 +406,7 @@ function Hero() {
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
-                src="/golek-opo.gif"
+                src="https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif"
                 alt=""
                 aria-hidden
                 draggable={false}
@@ -521,7 +521,7 @@ function Hero() {
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
-                src="/golek-opo.gif"
+                src="https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif"
                 alt=""
                 aria-hidden
                 draggable={false}
