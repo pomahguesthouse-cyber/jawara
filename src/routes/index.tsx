@@ -188,57 +188,6 @@ function Hero() {
                   {slide.subtext}
                 </p>
 
-                {/* Render content based on slide type */}
-                {slide.type === "search" && (
-                  <div className="space-y-6 animate-fade-up">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
-                      }}
-                      className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl sm:rounded-full p-1.5 shadow-lg gap-2 text-gray-800"
-                    >
-                      {/* City Selector */}
-                      <div className="relative flex items-center gap-1.5 px-3 py-2.5 border-b sm:border-b-0 sm:border-r border-gray-100 shrink-0">
-                        <MapPin className="size-4 text-[#1a6b3c]" />
-                        <select
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          className="text-sm font-semibold text-gray-700 bg-transparent focus:outline-none pr-5 appearance-none cursor-pointer w-full"
-                        >
-                          {CITIES.map((c) => <option key={c}>{c}</option>)}
-                        </select>
-                        <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
-                      </div>
-
-                      {/* Search Input */}
-                      <div className="flex-1 flex items-center gap-2 px-3 py-2 sm:py-0">
-                        <Search className="size-4 text-gray-400 shrink-0" />
-                        <input
-                          value={q}
-                          onChange={(e) => setQ(e.target.value)}
-                          placeholder="Cari usaha, produk, kategori..."
-                          className="w-full h-10 bg-transparent text-sm focus:outline-none text-gray-700"
-                        />
-                      </div>
-
-                      {/* Submit button */}
-                      <button
-                        type="submit"
-                        className="h-11 sm:h-12 px-6 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold rounded-xl sm:rounded-full transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
-                      >
-                        Cari Sekarang <ChevronRight className="size-4" />
-                      </button>
-                    </form>
-                    
-                    {/* Category quick links */}
-                    <div className="pt-2">
-                      <p className="text-xs text-gray-300 font-semibold mb-2.5 uppercase tracking-wider">Kategori Populer</p>
-                      <QuickCategories />
-                    </div>
-                  </div>
-                )}
-
                 {slide.type === "button" && (
                   <div className="pt-2 animate-fade-up">
                     <Link
@@ -255,6 +204,48 @@ function Hero() {
           </div>
         );
       })}
+
+      {/* Search box pinned to the bottom of the hero, across all slides */}
+      <div className="absolute bottom-16 sm:bottom-20 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 pointer-events-none">
+        <div className="mx-auto max-w-3xl pointer-events-auto animate-fade-up">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
+            }}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl sm:rounded-full p-1.5 shadow-2xl gap-2 text-gray-800"
+          >
+            <div className="relative flex items-center gap-1.5 px-3 py-2.5 border-b sm:border-b-0 sm:border-r border-gray-100 shrink-0">
+              <MapPin className="size-4 text-[#1a6b3c]" />
+              <select
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                className="text-sm font-semibold text-gray-700 bg-transparent focus:outline-none pr-5 appearance-none cursor-pointer w-full"
+              >
+                {CITIES.map((c) => <option key={c}>{c}</option>)}
+              </select>
+              <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
+            </div>
+
+            <div className="flex-1 flex items-center gap-2 px-3 py-2 sm:py-0">
+              <Search className="size-4 text-gray-400 shrink-0" />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Cari usaha, produk, kategori..."
+                className="w-full h-10 bg-transparent text-sm focus:outline-none text-gray-700"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="h-11 sm:h-12 px-6 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold rounded-xl sm:rounded-full transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+            >
+              Cari Sekarang <ChevronRight className="size-4" />
+            </button>
+          </form>
+        </div>
+      </div>
 
       {/* Navigation Arrows (Desktop Only) */}
       <button
@@ -286,34 +277,6 @@ function Hero() {
         ))}
       </div>
     </section>
-  );
-}
-
-function QuickCategories() {
-  const { data } = useSuspenseQuery(homeQueryOptions);
-  const shown = data.categories.slice(0, 6);
-
-  return (
-    <div className="flex flex-wrap gap-2 sm:gap-3">
-      {shown.map((c) => (
-        <Link
-          key={c.id}
-          to="/direktori"
-          search={{ kategori: c.slug } as never}
-          className="flex flex-col items-center gap-1 px-3 py-2.5 rounded-2xl bg-gray-50 hover:bg-green-50 hover:ring-1 hover:ring-green-200 transition group"
-        >
-          <span className="text-xl leading-none">{c.icon ?? "🏪"}</span>
-          <span className="text-[11px] font-semibold text-gray-600 group-hover:text-[#1a6b3c]">{c.name}</span>
-        </Link>
-      ))}
-      <Link
-        to="/direktori"
-        className="flex flex-col items-center gap-1 px-3 py-2.5 rounded-2xl bg-gray-50 hover:bg-green-50 transition"
-      >
-        <span className="text-xl leading-none">≡</span>
-        <span className="text-[11px] font-semibold text-gray-500">Lainnya</span>
-      </Link>
-    </div>
   );
 }
 
