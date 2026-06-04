@@ -39,6 +39,7 @@ function ProfilPage() {
   const [form, setForm] = useState<UmkmForm>(empty);
   const [umkmId, setUmkmId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [customCategoryName, setCustomCategoryName] = useState("");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState(false);
 
@@ -203,6 +204,40 @@ function ProfilPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      let finalCategoryId = form.category_id || null;
+
+      // Handle custom category insertion
+      if (form.category_id === "custom") {
+        const name = customCategoryName.trim();
+        if (!name) {
+          throw new Error("Nama kategori kustom wajib diisi");
+        }
+        const slug = slugify(name);
+
+        // 1. Check if category already exists by slug
+        const { data: existingCat, error: findError } = await supabase
+          .from("categories")
+          .select("id")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (findError) throw findError;
+
+        if (existingCat) {
+          finalCategoryId = existingCat.id;
+        } else {
+          // 2. Insert new custom category
+          const { data: newCat, error: insertCatError } = await supabase
+            .from("categories")
+            .insert({ name, slug, icon: "🏷️" })
+            .select("id")
+            .single();
+
+          if (insertCatError) throw insertCatError;
+          finalCategoryId = newCat.id;
+        }
+      }
+
       const payload = {
         owner_id: user.id,
         name: form.name,
@@ -218,7 +253,7 @@ function ProfilPage() {
         facebook: form.facebook || null,
         logo_url: form.logo_url || null,
         banner_url: form.banner_url || null,
-        category_id: form.category_id || null,
+        category_id: finalCategoryId,
       };
 
       const { error } = umkmId
@@ -230,6 +265,7 @@ function ProfilPage() {
       toast.success("Profil tersimpan");
       qc.invalidateQueries({ queryKey: ["my-umkm"] });
       qc.invalidateQueries({ queryKey: ["dashboard-overview"] });
+      qc.invalidateQueries({ queryKey: ["categories-all"] });
     } catch (err: any) {
       console.error("Gagal menyimpan profil:", err);
       const msg = err?.message || err?.details || (typeof err === 'string' ? err : "Gagal menyimpan");
@@ -258,11 +294,30 @@ function ProfilPage() {
               <input value={form.slug} onChange={(e) => update("slug", slugify(e.target.value))} required className={inputCls} />
             </Field>
             <Field label="Kategori" full>
-              <select value={form.category_id} onChange={(e) => update("category_id", e.target.value)} className={inputCls}>
+              <select 
+                value={form.category_id} 
+                onChange={(e) => {
+                  update("category_id", e.target.value);
+                  if (e.target.value !== "custom") setCustomCategoryName("");
+                }} 
+                className={inputCls}
+              >
                 <option value="">Pilih kategori</option>
                 {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="custom">Lainnya (Isi sendiri...)</option>
               </select>
             </Field>
+            {form.category_id === "custom" && (
+              <Field label="Nama Kategori Baru" required full hint="kategori baru akan didaftarkan ke sistem">
+                <input 
+                  value={customCategoryName} 
+                  onChange={(e) => setCustomCategoryName(e.target.value)} 
+                  required 
+                  placeholder="Contoh: Kerajinan Bambu, Konveksi Sablon, Jasa Jahit" 
+                  className={inputCls} 
+                />
+              </Field>
+            )}
             <Field label="Deskripsi Usaha" full>
               <textarea rows={4} value={form.description} onChange={(e) => update("description", e.target.value)} className={inputCls} />
             </Field>
