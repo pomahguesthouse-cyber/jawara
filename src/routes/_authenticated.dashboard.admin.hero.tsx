@@ -282,6 +282,48 @@ const PRESETS = [
   },
 ];
 
+// Deep merge that preserves defaults for any missing nested keys.
+// Crucial because slides loaded from DB may have partial `settings` JSONB.
+function deepMerge<T>(target: T, source: any): T {
+  if (source == null || typeof source !== "object" || Array.isArray(source)) return target;
+  const out: any = Array.isArray(target) ? [...(target as any)] : { ...(target as any) };
+  for (const key of Object.keys(source)) {
+    const sv = (source as any)[key];
+    const tv = (target as any)?.[key];
+    if (sv != null && typeof sv === "object" && !Array.isArray(sv) && tv && typeof tv === "object" && !Array.isArray(tv)) {
+      out[key] = deepMerge(tv, sv);
+    } else if (sv !== undefined) {
+      out[key] = sv;
+    }
+  }
+  return out as T;
+}
+
+function normalizeSlide(s: any): HeroSlideRow {
+  const settings = deepMerge(defaultSettings, s.settings || {});
+  if (!settings.headline.text) settings.headline.text = s.title || defaultSettings.headline.text;
+  if (!settings.subheadline.text) settings.subheadline.text = s.subtext || defaultSettings.subheadline.text;
+  if (!settings.background.image) settings.background.image = s.image || defaultSettings.background.image;
+  if (s.type === "search") {
+    settings.searchBar.show = true;
+    settings.cta1.show = false;
+  } else if (s.type === "button") {
+    settings.cta1.show = true;
+    if (s.btn_text) settings.cta1.text = s.btn_text;
+    if (s.btn_to) settings.cta1.link = s.btn_to;
+  }
+  return {
+    ...s,
+    internal_name: s.internal_name || s.title || `Slide ${s.sort_order}`,
+    status: s.status || "published",
+    start_date: s.start_date || null,
+    end_date: s.end_date || null,
+    priority_score: s.priority_score || 0,
+    tags: s.tags || [],
+    settings,
+  } as HeroSlideRow;
+}
+
 // ─── Page Component ─────────────────────────────────────────────────────────
 function AdminHeroSliderPage() {
   const qc = useQueryClient();
@@ -336,7 +378,7 @@ function AdminHeroSliderPage() {
   };
 
   // ─── Queries ───────────────────────────────────────────────────────────────
-  const { data: rawSlides = [], isLoading } = useQuery<HeroSlideRow[]>({
+  const { data: rawSlides = [], isLoading, error: slidesError } = useQuery<HeroSlideRow[]>({
     queryKey: ["admin-hero-slides"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -346,55 +388,59 @@ function AdminHeroSliderPage() {
 
       if (error) throw error;
 
-      // Transform & normalize rows for advanced builder configuration
-      const formatted = (data ?? []).map((s: any) => {
-        const settings = {
-          ...defaultSettings,
-          ...(s.settings || {}),
-        };
-        // Ensure core attributes fall back to database values
-        if (!settings.headline.text) settings.headline.text = s.title;
-        if (!settings.subheadline.text) settings.subheadline.text = s.subtext;
-        if (!settings.background.image) settings.background.image = s.image;
-        if (s.type === "search") {
-          settings.searchBar.show = true;
-          settings.cta1.show = false;
-        } else if (s.type === "button") {
-          settings.cta1.show = true;
-          if (s.btn_text) settings.cta1.text = s.btn_text;
-          if (s.btn_to) settings.cta1.link = s.btn_to;
-        }
-        return {
-          ...s,
-          internal_name: s.internal_name || s.title || `Slide ${s.sort_order}`,
-          status: s.status || "published",
-          start_date: s.start_date || null,
-          end_date: s.end_date || null,
-          priority_score: s.priority_score || 0,
-          tags: s.tags || [],
-          settings,
-        } as HeroSlideRow;
-      });
-      return formatted;
+      return (data ?? []).map((s: any) => normalizeSlide(s));
     },
   });
 
-  // Sync loaded database query with local component state
   useEffect(() => {
-    if (rawSlides.length > 0) {
-      setSlides(rawSlides);
+    if (slidesError) {
+      toast.error(`Gagal memuat hero slides: ${(slidesError as Error).message}`);
     }
+  }, [slidesError]);
+
+  // Sync loaded database query with local component state (always, including empty)
+  useEffect(() => {
+    setSlides(rawSlides);
+    if (activeIdx >= rawSlides.length) setActiveIdx(0);
   }, [rawSlides]);
+
+  // Media library from Supabase
+  const { data: dbMedia = [] } = useQuery({
+    queryKey: ["hero-media-library"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("hero_media_library")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    if (dbMedia.length > 0) {
+      setMediaItems(
+        dbMedia.map((m: any) => ({
+          id: m.id,
+          name: m.name,
+          url: m.url,
+          folder: m.folder,
+          size: m.size_bytes ? `${(m.size_bytes / 1024).toFixed(0)} KB` : "—",
+        }))
+      );
+    }
+  }, [dbMedia]);
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
   const publishAll = useMutation({
     mutationFn: async (items: HeroSlideRow[]) => {
-      // Save each slide sequentially to support JSONB updates & database values mapping
-      const promises = items.map((slide) => {
-        const payload = {
+      for (const slide of items) {
+        const payload: Record<string, any> = {
           title: slide.settings.headline.text,
           subtext: slide.settings.subheadline.text,
-          image: slide.settings.background.image || "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1600",
+          image:
+            slide.settings.background.image ||
+            "https://images.unsplash.com/photo-1542838132-92c53300491e?q=80&w=1600",
           type: slide.settings.searchBar.show ? "search" : "button",
           btn_text: slide.settings.cta1.show ? slide.settings.cta1.text : null,
           btn_to: slide.settings.cta1.show ? slide.settings.cta1.link : null,
@@ -407,19 +453,19 @@ function AdminHeroSliderPage() {
           tags: slide.tags,
           settings: slide.settings,
         };
-        return supabase.from("hero_slides").upsert({
-          id: slide.id.includes("-") ? slide.id : undefined, // Check if actual UUID or temporary
-          ...payload,
-        });
-      });
-      await Promise.all(promises);
+        const isTemp = !slide.id || slide.id.startsWith("temp_");
+        const { error } = isTemp
+          ? await supabase.from("hero_slides").insert(payload)
+          : await supabase.from("hero_slides").update(payload).eq("id", slide.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       toast.success("Semua perubahan berhasil dipublikasikan ke Website Utama!");
       qc.invalidateQueries({ queryKey: ["admin-hero-slides"] });
       qc.invalidateQueries({ queryKey: ["home-hero-slides"] });
     },
-    onError: (e) => toast.error(`Gagal mempublikasikan: ${e.message}`),
+    onError: (e: any) => toast.error(`Gagal mempublikasikan: ${e?.message ?? "unknown error"}`),
   });
 
   // ─── State History (Undo / Redo) ──────────────────────────────────────────
@@ -501,16 +547,23 @@ function AdminHeroSliderPage() {
     toast.success("Slide berhasil digandakan");
   };
 
-  const handleDeleteSlide = (idx: number) => {
-    if (slides.length <= 1) {
-      toast.warning("Harus menyisakan minimal 1 slide di slider!");
-      return;
+  const handleDeleteSlide = async (idx: number) => {
+    const target = slides[idx];
+    if (!target) return;
+    const isTemp = !target.id || target.id.startsWith("temp_");
+    if (!isTemp) {
+      const { error } = await supabase.from("hero_slides").delete().eq("id", target.id);
+      if (error) {
+        toast.error(`Gagal menghapus dari database: ${error.message}`);
+        return;
+      }
     }
-    const filtered = slides.filter((_, i) => i !== idx).map((s, idx) => ({ ...s, sort_order: idx + 1 }));
+    const filtered = slides.filter((_, i) => i !== idx).map((s, i) => ({ ...s, sort_order: i + 1 }));
     pushToHistory(filtered);
     setSlides(filtered);
     setActiveIdx(0);
-    toast.success("Slide dihapus dari daftar kerja");
+    qc.invalidateQueries({ queryKey: ["admin-hero-slides"] });
+    toast.success(isTemp ? "Slide draft dihapus" : "Slide dihapus dari database");
   };
 
   const handleArchiveSlide = (idx: number) => {
@@ -814,26 +867,49 @@ function AdminHeroSliderPage() {
                     onChange={async (e) => {
                       const files = e.target.files;
                       if (!files) return;
-                      toast.info("Mengunggah media ke Supabase...");
+                      toast.info(`Mengunggah ${files.length} file ke Supabase Storage...`);
                       for (let i = 0; i < files.length; i++) {
                         const file = files[i];
-                        const reader = new FileReader();
-                        reader.onloadend = () => {
-                          const base64 = reader.result as string;
-                          setMediaItems((prev) => [
-                            {
-                              id: `m_${Date.now()}_${i}`,
-                              name: file.name,
-                              url: base64,
-                              folder: mediaFolder,
-                              size: `${(file.size / 1024).toFixed(0)} KB`,
-                            },
-                            ...prev,
-                          ]);
-                          toast.success(`Berhasil mengunggah ${file.name}`);
-                        };
-                        reader.readAsDataURL(file);
+                        const ext = file.name.split(".").pop() || "bin";
+                        const path = `${mediaFolder.toLowerCase().replace(/\s+/g, "-")}/${Date.now()}-${i}.${ext}`;
+                        const { error: upErr } = await supabase.storage
+                          .from("hero-media")
+                          .upload(path, file, { cacheControl: "3600", upsert: false });
+                        if (upErr) {
+                          toast.error(`Gagal upload ${file.name}: ${upErr.message}`);
+                          continue;
+                        }
+                        const { data: pub } = supabase.storage.from("hero-media").getPublicUrl(path);
+                        const publicUrl = pub.publicUrl;
+                        const { data: row, error: rowErr } = await supabase
+                          .from("hero_media_library")
+                          .insert({
+                            name: file.name,
+                            url: publicUrl,
+                            storage_path: path,
+                            folder: mediaFolder,
+                            size_bytes: file.size,
+                            mime_type: file.type,
+                          })
+                          .select()
+                          .single();
+                        if (rowErr) {
+                          toast.error(`Upload OK tapi gagal catat library: ${rowErr.message}`);
+                          continue;
+                        }
+                        setMediaItems((prev) => [
+                          {
+                            id: row.id,
+                            name: row.name,
+                            url: row.url,
+                            folder: row.folder,
+                            size: `${(file.size / 1024).toFixed(0)} KB`,
+                          },
+                          ...prev,
+                        ]);
+                        toast.success(`${file.name} terunggah`);
                       }
+                      qc.invalidateQueries({ queryKey: ["hero-media-library"] });
                     }}
                     className="absolute inset-0 size-full opacity-0 cursor-pointer"
                   />
@@ -1131,9 +1207,19 @@ function AdminHeroSliderPage() {
                 </div>
               </div>
             ) : (
-              <div className="text-zinc-500 text-center py-20 bg-zinc-950 p-10 border border-zinc-900 rounded-3xl">
-                <Layout className="size-12 mx-auto text-zinc-700 mb-3" />
-                Tidak ada slide yang aktif.
+              <div className="text-zinc-400 text-center py-12 bg-zinc-950 p-10 border border-zinc-800 rounded-3xl max-w-md">
+                <Layout className="size-12 mx-auto text-emerald-500/60 mb-4" />
+                <h3 className="font-extrabold text-white text-lg mb-1">Belum ada slide</h3>
+                <p className="text-xs text-zinc-500 mb-5">
+                  Mulai bangun hero banner pertama untuk homepage JAWARA. Anda bisa menerapkan preset profesional setelahnya.
+                </p>
+                <button
+                  onClick={handleAddSlide}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-5 h-10 rounded-xl inline-flex items-center gap-2 shadow-lg transition"
+                >
+                  <Plus className="size-4" />
+                  Tambah Slide Pertama
+                </button>
               </div>
             )}
           </div>
