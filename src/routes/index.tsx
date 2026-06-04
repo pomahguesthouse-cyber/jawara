@@ -279,7 +279,7 @@ function PopularUmkm() {
           </div>
         ) : (
           /* Horizontal scroll on mobile, 4-col grid on desktop */
-          <div className="flex overflow-x-auto no-scrollbar gap-4 -mx-4 px-4 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex overflow-x-auto no-scrollbar gap-4 -mx-4 px-4 pb-4 sm:pb-0 sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 lg:grid-cols-4">
             {data.umkm.map((u) => (
               <UmkmCard
                 key={u.id}
@@ -585,7 +585,7 @@ function LatestProducts() {
           onMouseLeave={() => setIsPaused(false)}
           onFocus={() => setIsPaused(true)}
           onBlur={() => setIsPaused(false)}
-          className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-5 scroll-smooth -mx-4 px-4 sm:mx-0 sm:px-0"
+          className="flex overflow-x-auto no-scrollbar gap-3 sm:gap-5 scroll-smooth -mx-4 px-4 pb-4 sm:mx-0 sm:px-0"
         >
           {data.products.slice(0, 8).map((p) => (
             <div key={p.id} className="w-[200px] sm:w-[240px] md:w-[260px] lg:w-[285px] shrink-0 group">

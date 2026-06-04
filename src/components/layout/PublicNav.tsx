@@ -35,7 +35,7 @@ export function PublicNav() {
             <img src="/logo.png" alt="JAWARA" className="h-9 w-auto object-contain" />
             <div className="flex flex-col leading-none">
               <span className="font-extrabold text-[#1a6b3c] tracking-tight text-base">JAWARA</span>
-              <span className="text-[9px] uppercase tracking-[0.12em] text-gray-400 font-semibold">Jaringan Wirausaha</span>
+              <span className="text-[9px] uppercase tracking-[0.12em] text-gray-400 font-semibold">Jaringan Wira Usaha Nusantara</span>
             </div>
           </Link>
 
