@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import {
-  Search, MapPin, ChevronRight, ChevronLeft, Star, BadgeCheck, Heart,
+  MapPin, ChevronRight, ChevronLeft, Star, BadgeCheck, Heart,
   Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -400,12 +400,18 @@ function Hero() {
             <button
               type={searchOpen ? "submit" : "button"}
               onClick={handleSearchIconClick}
-              className={`size-12 grid place-items-center bg-[#1a6b3c] active:bg-[#155c33] text-white shadow-2xl transition-all duration-300 ${
+              className={`size-12 overflow-hidden bg-white ring-2 ring-white shadow-2xl transition-all duration-300 active:scale-95 ${
                 searchOpen ? "rounded-r-full" : "rounded-full"
               }`}
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
-              <Search className="size-5" />
+              <img
+                src="/golek-opo.gif"
+                alt=""
+                aria-hidden
+                draggable={false}
+                className="size-full object-cover object-center pointer-events-none"
+              />
             </button>
           </form>
         </div>
@@ -509,12 +515,18 @@ function Hero() {
             <button
               type={searchOpen ? "submit" : "button"}
               onClick={handleSearchIconClick}
-              className={`size-14 grid place-items-center bg-[#1a6b3c] hover:bg-[#155c33] text-white shadow-2xl transition-all duration-300 cursor-pointer ${
-                searchOpen ? "rounded-r-full" : "rounded-full hover:scale-105"
+              className={`size-14 overflow-hidden bg-white ring-2 ring-white shadow-2xl transition-all duration-300 cursor-pointer ${
+                searchOpen ? "rounded-r-full" : "rounded-full hover:scale-110"
               }`}
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
-              <Search className="size-5" />
+              <img
+                src="/golek-opo.gif"
+                alt=""
+                aria-hidden
+                draggable={false}
+                className="size-full object-cover object-center pointer-events-none"
+              />
             </button>
           </form>
         </div>
