@@ -20,7 +20,7 @@ const directoryQueryOptions = (p: Params) =>
     queryFn: async () => {
       let query = supabase
         .from("umkm_profiles")
-        .select("id, slug, name, city, logo_url, rating, is_verified, category:categories(slug, name)")
+        .select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(slug, name)")
         .eq("is_published", true);
       if (p.q) query = query.ilike("name", `%${p.q}%`);
       if (p.kota) query = query.eq("city", p.kota);

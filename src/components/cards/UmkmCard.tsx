@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { MapPin, Star } from "lucide-react";
+import { MapPin, Star, BadgeCheck } from "lucide-react";
 
 export interface UmkmCardData {
   id: string;
@@ -7,51 +7,92 @@ export interface UmkmCardData {
   name: string;
   city: string;
   logo_url: string | null;
+  banner_url?: string | null;
   rating: number | null;
   is_verified?: boolean;
   product_count?: number;
 }
 
 export function UmkmCard({ umkm }: { umkm: UmkmCardData }) {
-  const initials = umkm.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+  const initials = umkm.name
+    .split(" ")
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
+
   return (
     <Link
       to="/umkm/$slug"
       params={{ slug: umkm.slug }}
-      className="group bg-card p-5 rounded-2xl border border-border hover:shadow-lift hover:-translate-y-0.5 transition-all flex items-start gap-4"
+      className="group bg-card rounded-2xl border border-border hover:shadow-lift hover:-translate-y-1 transition-all duration-200 overflow-hidden flex flex-col"
     >
-      <div className="size-14 shrink-0 rounded-full bg-primary-soft text-primary grid place-items-center font-bold ring-1 ring-border overflow-hidden">
-        {umkm.logo_url ? (
-          <img src={umkm.logo_url} alt={umkm.name} className="size-full object-cover" />
+      {/* ── Banner ── */}
+      <div className="relative h-36 w-full overflow-hidden bg-primary-soft">
+        {umkm.banner_url ? (
+          <img
+            src={umkm.banner_url}
+            alt={`Banner ${umkm.name}`}
+            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : umkm.logo_url ? (
+          /* pakai logo sebagai background blur jika tidak ada banner */
+          <>
+            <img
+              src={umkm.logo_url}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover scale-110 blur-md opacity-40"
+            />
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/40 to-primary-soft" />
+            <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-primary/60 select-none">
+              {initials}
+            </span>
+          </>
         ) : (
-          initials
+          /* fallback gradient murni */
+          <>
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary-soft" />
+            <span className="absolute inset-0 flex items-center justify-center text-4xl font-black text-primary/50 select-none">
+              {initials}
+            </span>
+          </>
+        )}
+
+        {/* Rating badge di pojok kanan atas */}
+        {umkm.rating != null && (
+          <span className="absolute top-2 right-2 inline-flex items-center gap-0.5 text-xs font-bold bg-black/60 text-yellow-300 px-2 py-0.5 rounded-full backdrop-blur-sm">
+            <Star className="size-3 fill-yellow-300 text-yellow-300" />
+            {Number(umkm.rating).toFixed(1)}
+          </span>
+        )}
+
+        {/* Logo kecil di pojok kiri bawah (overlay di atas banner) */}
+        {umkm.logo_url && (
+          <div className="absolute bottom-2 left-2 size-10 rounded-full ring-2 ring-white/80 bg-white overflow-hidden shadow-md">
+            <img src={umkm.logo_url} alt={umkm.name} className="size-full object-cover" />
+          </div>
         )}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-bold text-base truncate group-hover:text-primary transition-colors">
+
+      {/* ── Body ── */}
+      <div className="p-4 flex flex-col gap-1 flex-1">
+        <div className="flex items-center gap-1.5">
+          <h3 className="font-bold text-sm leading-snug truncate group-hover:text-primary transition-colors flex-1">
             {umkm.name}
           </h3>
-          {umkm.rating != null && (
-            <span className="shrink-0 inline-flex items-center gap-0.5 text-xs font-bold text-warm-foreground bg-warm/15 px-1.5 py-0.5 rounded">
-              <Star className="size-3 fill-warm text-warm" />
-              {Number(umkm.rating).toFixed(1)}
-            </span>
-          )}
-        </div>
-        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-          <MapPin className="size-3" /> {umkm.city}
-        </p>
-        <div className="mt-3 flex flex-wrap gap-1.5">
           {umkm.is_verified && (
-            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-primary-soft text-primary">
-              Terverifikasi
-            </span>
+            <BadgeCheck className="size-4 shrink-0 text-primary" />
           )}
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
-            {umkm.product_count ?? 0} Produk
-          </span>
         </div>
+
+        <p className="text-xs text-muted-foreground flex items-center gap-1">
+          <MapPin className="size-3 shrink-0" />
+          <span className="truncate">{umkm.city}</span>
+        </p>
+
+        <span className="mt-2 self-start text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground">
+          {umkm.product_count ?? 0} Produk
+        </span>
       </div>
     </Link>
   );

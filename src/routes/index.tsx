@@ -12,7 +12,7 @@ const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
     const [umkm, products, events, articles, categories] = await Promise.all([
-      supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, rating, is_verified").eq("is_published", true).order("rating", { ascending: false }).limit(6),
+      supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified").eq("is_published", true).order("rating", { ascending: false }).limit(6),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       supabase.from("events").select("id, slug, title, cover_url, event_type, location, city, start_at").order("start_at", { ascending: true }).limit(3),
       supabase.from("articles").select("id, slug, title, excerpt, cover_url, category, published_at").order("published_at", { ascending: false }).limit(3),
