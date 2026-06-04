@@ -119,7 +119,12 @@ type HeroSlideVM = {
   bgType?: "image" | "video" | "gradient" | "solid" | "ai";
   videoUrl?: string;
   videoPoster?: string;
+  /** Auto-advance duration in ms. Falls back to DEFAULT_HERO_DURATION. */
+  duration?: number;
 };
+
+const DEFAULT_HERO_DURATION = 6000;
+const MIN_HERO_DURATION = 1000;
 
 // Convert various video URLs (YouTube, Vimeo, direct .mp4) into something
 // we can render as background. Returns either { kind: 'iframe', src } or
@@ -179,36 +184,32 @@ function HeroBackground({ slide }: { slide: HeroSlideVM }) {
   return <img src={slide.image} alt="" className="absolute inset-0 size-full object-cover object-center" />;
 }
 
-function useCarousel(length: number) {
+function useCarousel(length: number, getDuration: (idx: number) => number) {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Keep the latest duration accessor in a ref so the effect doesn't re-run
+  // every render just because the parent recreates the callback.
+  const getDurationRef = useRef(getDuration);
+  getDurationRef.current = getDuration;
 
   useEffect(() => {
     if (length <= 1) return;
-    timerRef.current = setInterval(() => {
+    const raw = getDurationRef.current(currentSlide);
+    const ms = Math.max(MIN_HERO_DURATION, Number.isFinite(raw) ? raw : DEFAULT_HERO_DURATION);
+    const t = setTimeout(() => {
       setCurrentSlide((prev) => (prev + 1) % length);
-    }, 6000);
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [length]);
-
-  const resetTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-  };
+    }, ms);
+    return () => clearTimeout(t);
+  }, [currentSlide, length]);
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    resetTimer();
     setCurrentSlide((prev) => (prev - 1 + length) % length);
   };
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    resetTimer();
     setCurrentSlide((prev) => (prev + 1) % length);
   };
   const handleDotClick = (idx: number) => {
-    resetTimer();
     setCurrentSlide(idx);
   };
 
@@ -234,6 +235,7 @@ function Hero() {
       bgType: bg.type || "image",
       videoUrl: bg.videoUrl || undefined,
       videoPoster: bg.videoPoster || undefined,
+      duration: typeof s.settings?.duration === "number" ? s.settings.duration : DEFAULT_HERO_DURATION,
       device: s.device || "both",
     };
   });
@@ -244,8 +246,14 @@ function Hero() {
   const mobileSlides: HeroSlideVM[] = dbMobile.length > 0 ? dbMobile : HERO_SLIDES;
   const desktopSlides: HeroSlideVM[] = dbDesktop.length > 0 ? dbDesktop : HERO_SLIDES;
 
-  const mobileCarousel = useCarousel(mobileSlides.length);
-  const desktopCarousel = useCarousel(desktopSlides.length);
+  const mobileCarousel = useCarousel(
+    mobileSlides.length,
+    (idx) => mobileSlides[idx]?.duration ?? DEFAULT_HERO_DURATION,
+  );
+  const desktopCarousel = useCarousel(
+    desktopSlides.length,
+    (idx) => desktopSlides[idx]?.duration ?? DEFAULT_HERO_DURATION,
+  );
 
   const [q, setQ] = useState("");
   const [city, setCity] = useState("Semarang");
