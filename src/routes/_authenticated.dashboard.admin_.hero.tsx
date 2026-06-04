@@ -146,6 +146,7 @@ interface HeroSlideRow {
   end_date?: string | null;
   priority_score: number;
   tags?: string[];
+  device: "desktop" | "mobile" | "both";
   settings: SlideSettings;
 }
 
@@ -320,6 +321,7 @@ function normalizeSlide(s: any): HeroSlideRow {
     end_date: s.end_date || null,
     priority_score: s.priority_score || 0,
     tags: s.tags || [],
+    device: s.device || "both",
     settings,
   } as HeroSlideRow;
 }
@@ -451,6 +453,7 @@ function AdminHeroSliderPage() {
           end_date: slide.end_date,
           priority_score: slide.priority_score,
           tags: slide.tags,
+          device: slide.device || "both",
           settings: slide.settings,
         };
         const isTemp = !slide.id || slide.id.startsWith("temp_");
@@ -521,6 +524,7 @@ function AdminHeroSliderPage() {
       status: "draft",
       priority_score: 0,
       tags: ["Campaign"],
+      device: "both",
       settings: JSON.parse(JSON.stringify(defaultSettings)),
     };
     const updated = [...slides, newSlide];
@@ -1294,6 +1298,29 @@ function AdminHeroSliderPage() {
                       <option value="scheduled">Scheduled</option>
                       <option value="archived">Archived</option>
                     </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[10px] font-bold text-zinc-400 block mb-1">Target Perangkat</label>
+                  <div className="grid grid-cols-3 gap-1 bg-zinc-900 p-1 rounded-xl border border-zinc-800 text-[10px]">
+                    {(["both", "desktop", "mobile"] as const).map((dev) => (
+                      <button
+                        key={dev}
+                        type="button"
+                        onClick={() => updateActiveSlide((s) => ({ ...s, device: dev }))}
+                        className={`py-1.5 rounded-lg font-bold transition capitalize flex items-center justify-center gap-1 ${
+                          (activeSlide?.device || "both") === dev
+                            ? "bg-emerald-600/20 text-emerald-300 ring-1 ring-emerald-500/40"
+                            : "text-zinc-500 hover:text-zinc-300"
+                        }`}
+                      >
+                        {dev === "desktop" && <Monitor className="size-3" />}
+                        {dev === "mobile" && <Smartphone className="size-3" />}
+                        {dev === "both" && <Layers className="size-3" />}
+                        {dev === "both" ? "Keduanya" : dev}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -2344,6 +2371,12 @@ function SortableItem({
           </span>
           <span className="text-[8px] text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded border border-zinc-850">
             Score: {slide.priority_score}
+          </span>
+          <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded-full bg-zinc-950 border border-zinc-800 text-zinc-300 inline-flex items-center gap-1">
+            {slide.device === "desktop" && <Monitor className="size-2.5" />}
+            {slide.device === "mobile" && <Smartphone className="size-2.5" />}
+            {(slide.device === "both" || !slide.device) && <Layers className="size-2.5" />}
+            {slide.device === "both" || !slide.device ? "Both" : slide.device}
           </span>
         </div>
       </div>
