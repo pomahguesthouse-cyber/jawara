@@ -13,7 +13,7 @@ import { formatRupiah } from "@/lib/format";
 const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
-    const [umkm, products, umkmProducts, events, articles, categories, heroSlidesResult] = await Promise.all([
+    const [umkm, products, umkmProducts, events, articles, categories, heroSlidesResult, searchIconResult] = await Promise.all([
       supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(name)").eq("is_published", true).order("rating", { ascending: false }).limit(8),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
@@ -25,6 +25,20 @@ const homeQueryOptions = queryOptions({
         (res) => (res.error ? { data: [] } : res),
         () => ({ data: [] })
       ),
+      // Lookup the floating search-toggle artwork by its admin-set name in
+      // the media library. Falls back to null and a hardcoded fallback in
+      // the component if the row or table isn't there.
+      supabase
+        .from("hero_media_library")
+        .select("url")
+        .eq("name", "search-icon-animation.gif")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+        .then(
+          (res) => (res.error ? { data: null } : res),
+          () => ({ data: null })
+        ),
     ]);
 
     // Build map: umkm_id → first 4 product image URLs
@@ -38,6 +52,7 @@ const homeQueryOptions = queryOptions({
     }
 
     const heroSlides = (heroSlidesResult?.data ?? []) as any[];
+    const searchIconUrl = (searchIconResult?.data as { url?: string } | null)?.url ?? null;
 
     return {
       umkm: umkm.data ?? [],
@@ -47,6 +62,7 @@ const homeQueryOptions = queryOptions({
       articles: articles.data ?? [],
       categories: categories.data ?? [],
       heroSlides,
+      searchIconUrl,
     };
   },
 });
@@ -316,6 +332,13 @@ function Hero() {
   const mobileSwipe = useSwipe(mobileCarousel.next, mobileCarousel.prev);
   const desktopSwipe = useSwipe(desktopCarousel.next, desktopCarousel.prev);
 
+  // Floating search-toggle artwork — looked up from the media library by
+  // name. Fall back to the previously-uploaded asset so the icon never
+  // disappears even if the library row is missing on a given environment.
+  const searchIconUrl =
+    data.searchIconUrl ??
+    "https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif";
+
   return (
     <>
       {/* ─── MOBILE HERO (< md) — vertical, centered, compact search ──────── */}
@@ -365,8 +388,8 @@ function Hero() {
             className="flex items-center gap-2"
           >
             <div
-              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-full h-12 transition-[max-width,opacity] duration-500 ease-out ${
-                searchOpen ? "max-w-[calc(100vw-7rem)] opacity-100" : "max-w-0 opacity-0"
+              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-full h-10 transition-[max-width,opacity] duration-500 ease-out ${
+                searchOpen ? "max-w-[calc(100vw-8.5rem)] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
               <button
@@ -392,7 +415,7 @@ function Hero() {
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari..."
-                  className="w-full h-11 bg-transparent text-sm focus:outline-none text-gray-700 placeholder:text-gray-400"
+                  className="w-full h-9 bg-transparent text-[13px] focus:outline-none text-gray-700 placeholder:text-gray-400"
                   autoFocus={searchOpen}
                 />
               </div>
@@ -400,15 +423,15 @@ function Hero() {
             <button
               type={searchOpen ? "submit" : "button"}
               onClick={handleSearchIconClick}
-              className="size-20 shrink-0 transition-transform duration-300 active:scale-95"
+              className="size-28 shrink-0 rounded-full bg-white shadow-2xl ring-2 ring-white overflow-hidden transition-transform duration-300 active:scale-95"
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
-                src="https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif"
+                src={searchIconUrl}
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="size-full object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.55)] pointer-events-none"
+                className="size-full object-cover object-center pointer-events-none"
               />
             </button>
           </form>
@@ -477,8 +500,8 @@ function Hero() {
             className="flex items-center gap-3"
           >
             <div
-              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-full h-14 transition-[max-width,opacity] duration-500 ease-out ${
-                searchOpen ? "max-w-[640px] opacity-100" : "max-w-0 opacity-0"
+              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-full h-11 transition-[max-width,opacity] duration-500 ease-out ${
+                searchOpen ? "max-w-[520px] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
               <button
@@ -500,12 +523,12 @@ function Hero() {
                 </select>
                 <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
               </div>
-              <div className="flex-1 flex items-center gap-2 px-3 min-w-[260px]">
+              <div className="flex-1 flex items-center gap-2 px-3 min-w-[220px]">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari usaha, produk, kategori..."
-                  className="w-full h-12 bg-transparent text-sm focus:outline-none text-gray-700 placeholder:text-gray-400"
+                  className="w-full h-10 bg-transparent text-[13px] focus:outline-none text-gray-700 placeholder:text-gray-400"
                   autoFocus={searchOpen}
                 />
               </div>
@@ -513,15 +536,15 @@ function Hero() {
             <button
               type={searchOpen ? "submit" : "button"}
               onClick={handleSearchIconClick}
-              className="size-28 shrink-0 cursor-pointer transition-transform duration-300 hover:scale-110 active:scale-95"
+              className="size-36 shrink-0 rounded-full bg-white shadow-2xl ring-2 ring-white overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105 active:scale-95"
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
-                src="https://yfidrvsrqwurkuavlsys.supabase.co/storage/v1/object/public/hero-media/hero-images/1780591301924-0.gif"
+                src={searchIconUrl}
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="size-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.55)] pointer-events-none"
+                className="size-full object-cover object-center pointer-events-none"
               />
             </button>
           </form>
