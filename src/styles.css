@@ -140,3 +140,24 @@
 .animate-fade-up {
   animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Hide scrollbar but keep scroll functionality (for horizontal carousels) */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area support for bottom navigation (iPhone notch/home bar) */
+.safe-area-inset-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Ensure main content is not hidden under the fixed bottom nav on mobile */
+@media (max-width: 767px) {
+  .public-shell-main {
+    padding-bottom: 4rem; /* 64px = h-16 bottom nav */
+  }
+}

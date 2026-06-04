@@ -6,7 +6,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <PublicNav />
-      <main className="flex-1">{children}</main>
+      <main className="flex-1 public-shell-main">{children}</main>
       <PublicFooter />
     </div>
   );
