@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { slugify } from "@/lib/format";
+import { Upload, Trash2, Image } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/profil")({
   component: ProfilPage,
@@ -38,6 +39,116 @@ function ProfilPage() {
   const [form, setForm] = useState<UmkmForm>(empty);
   const [umkmId, setUmkmId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+
+  // Helper to compress/resize image to base64
+  const compressImage = (file: File, maxW: number, maxH: number): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxW || height > maxH) {
+            if (width > height) {
+              height = Math.round((height * maxW) / width);
+              width = maxW;
+            } else {
+              width = Math.round((width * maxH) / height);
+              height = maxH;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(event.target?.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // JPEG compression at 85% quality
+          resolve(dataUrl);
+        };
+        img.onerror = (err) => reject(err);
+      };
+      reader.onerror = (err) => reject(err);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('File harus berupa gambar');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File terlalu besar, maksimal 5MB');
+      return;
+    }
+
+    const setUploading = type === 'logo' ? setUploadingLogo : setUploadingBanner;
+    setUploading(true);
+
+    try {
+      // 1. Compress image to a reasonable size
+      const maxW = type === 'logo' ? 300 : 1200;
+      const maxH = type === 'logo' ? 300 : 400;
+      const compressedBase64 = await compressImage(file, maxW, maxH);
+
+      // 2. Attempt to upload to Supabase Storage (public/logos or public/banners path)
+      const bucketName = 'umkm_assets';
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
+      
+      let finalUrl = compressedBase64; // fallback is the base64 string itself
+
+      try {
+        await supabase.storage.createBucket(bucketName, { public: true });
+      } catch (e) {
+        // ignore bucket creation errors
+      }
+
+      try {
+        const response = await fetch(compressedBase64);
+        const blob = await response.blob();
+        const uploadFile = new File([blob], `${type}.jpg`, { type: 'image/jpeg' });
+
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from(bucketName)
+          .upload(fileName, uploadFile, { upsert: true });
+
+        if (!uploadError && uploadData) {
+          const { data: { publicUrl } } = supabase.storage
+            .from(bucketName)
+            .getPublicUrl(uploadData.path);
+          
+          finalUrl = publicUrl;
+        } else {
+          console.warn("Storage upload failed, fallback to base64 saving:", uploadError?.message);
+        }
+      } catch (uploadErr) {
+        console.warn("Storage upload error, using base64 direct DB storage instead:", uploadErr);
+      }
+
+      update(type === 'logo' ? 'logo_url' : 'banner_url', finalUrl);
+      toast.success(`${type === 'logo' ? 'Logo' : 'Banner'} berhasil diproses`);
+    } catch (err) {
+      toast.error('Gagal memproses gambar');
+      console.error(err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const { data: categories } = useQuery({
     queryKey: ["categories-all"],
@@ -132,14 +243,78 @@ function ProfilPage() {
         </Card>
 
         <Card title="Identitas Visual">
-          <Grid>
-            <Field label="URL Logo" hint="link gambar JPG/PNG">
-              <input value={form.logo_url} onChange={(e) => update("logo_url", e.target.value)} className={inputCls} />
-            </Field>
-            <Field label="URL Banner">
-              <input value={form.banner_url} onChange={(e) => update("banner_url", e.target.value)} className={inputCls} />
-            </Field>
-          </Grid>
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Logo Upload Field */}
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                Logo Usaha
+              </span>
+              <div className="relative size-32 rounded-2xl border-2 border-dashed border-border hover:border-primary transition flex flex-col items-center justify-center overflow-hidden bg-muted group">
+                {form.logo_url ? (
+                  <>
+                    <img src={form.logo_url} alt="Logo Preview" className="size-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                      <label className="p-2 bg-background rounded-lg cursor-pointer hover:bg-muted text-foreground transition flex items-center justify-center">
+                        <Upload className="size-4" />
+                        <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} className="hidden" disabled={uploadingLogo} />
+                      </label>
+                      <button type="button" onClick={() => update('logo_url', '')} className="p-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition">
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <label className="size-full flex flex-col items-center justify-center cursor-pointer text-muted-foreground hover:text-primary transition gap-2">
+                    <Upload className="size-5" />
+                    <span className="text-xs font-medium">Pilih Logo</span>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'logo')} className="hidden" disabled={uploadingLogo} />
+                  </label>
+                )}
+                {uploadingLogo && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center text-xs text-primary font-bold">
+                    Mengunggah...
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground">Format JPG/PNG, maks 5MB.</span>
+            </div>
+
+            {/* Banner Upload Field */}
+            <div className="md:col-span-2 flex flex-col gap-2">
+              <span className="text-xs font-semibold text-foreground flex items-center gap-1">
+                Banner Usaha
+              </span>
+              <div className="relative h-32 w-full rounded-2xl border-2 border-dashed border-border hover:border-primary transition flex flex-col items-center justify-center overflow-hidden bg-muted group">
+                {form.banner_url ? (
+                  <>
+                    <img src={form.banner_url} alt="Banner Preview" className="size-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
+                      <label className="p-2 bg-background rounded-lg cursor-pointer hover:bg-muted text-foreground transition flex items-center gap-1 text-xs font-semibold">
+                        <Upload className="size-4" /> Ganti Banner
+                        <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} className="hidden" disabled={uploadingBanner} />
+                      </label>
+                      <button type="button" onClick={() => update('banner_url', '')} className="p-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition flex items-center gap-1 text-xs font-semibold">
+                        <Trash2 className="size-4" /> Hapus
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <label className="size-full flex flex-col items-center justify-center cursor-pointer text-muted-foreground hover:text-primary transition gap-2">
+                    <Image className="size-6" />
+                    <span className="text-xs font-medium">Pilih Banner Usaha</span>
+                    <span className="text-[10px] text-muted-foreground">Rekomendasi 1200x400 piksel</span>
+                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} className="hidden" disabled={uploadingBanner} />
+                  </label>
+                )}
+                {uploadingBanner && (
+                  <div className="absolute inset-0 bg-background/80 flex items-center justify-center text-xs text-primary font-bold">
+                    Mengunggah...
+                  </div>
+                )}
+              </div>
+              <span className="text-[10px] text-muted-foreground">Format JPG/PNG, maks 5MB.</span>
+            </div>
+          </div>
         </Card>
 
         <Card title="Lokasi & Kontak">
