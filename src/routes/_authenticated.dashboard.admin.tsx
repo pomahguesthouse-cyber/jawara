@@ -201,15 +201,26 @@ function AdminDashboard() {
 
   const deleteCategory = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("categories").delete().eq("id", id);
+      // .select() forces PostgREST to return affected rows so we can detect
+      // the RLS-denied case where the request "succeeds" with 0 rows.
+      const { data, error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", id)
+        .select("id");
       if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          "Tidak ada baris yang dihapus. Periksa apakah akun Anda memiliki role super_admin (kemungkinan tertolak RLS)."
+        );
+      }
     },
     onSuccess: () => {
       toast.success("Kategori berhasil dihapus");
       qc.invalidateQueries({ queryKey: ["admin-categories"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e: any) => toast.error(e?.message ?? "Gagal menghapus kategori"),
   });
 
   return (
