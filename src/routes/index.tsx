@@ -362,11 +362,11 @@ function Hero() {
         <div className="absolute bottom-6 right-4 z-30 pointer-events-auto">
           <form
             onSubmit={onSearchSubmit}
-            className="flex items-stretch"
+            className="flex items-center gap-2"
           >
             <div
-              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-l-full transition-[max-width,opacity] duration-500 ease-out ${
-                searchOpen ? "max-w-[calc(100vw-6.5rem)] opacity-100" : "max-w-0 opacity-0"
+              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-full h-12 transition-[max-width,opacity] duration-500 ease-out ${
+                searchOpen ? "max-w-[calc(100vw-7rem)] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
               <button
@@ -400,9 +400,7 @@ function Hero() {
             <button
               type={searchOpen ? "submit" : "button"}
               onClick={handleSearchIconClick}
-              className={`size-12 overflow-hidden bg-white ring-2 ring-white shadow-2xl transition-all duration-300 active:scale-95 ${
-                searchOpen ? "rounded-r-full" : "rounded-full"
-              }`}
+              className="size-20 shrink-0 transition-transform duration-300 active:scale-95"
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
@@ -410,7 +408,7 @@ function Hero() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="size-full object-cover object-center pointer-events-none"
+                className="size-full object-contain drop-shadow-[0_4px_12px_rgba(0,0,0,0.55)] pointer-events-none"
               />
             </button>
           </form>
@@ -476,10 +474,10 @@ function Hero() {
         <div className="absolute bottom-20 right-8 z-30 pointer-events-auto">
           <form
             onSubmit={onSearchSubmit}
-            className="flex items-stretch"
+            className="flex items-center gap-3"
           >
             <div
-              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-l-full transition-[max-width,opacity] duration-500 ease-out ${
+              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-full h-14 transition-[max-width,opacity] duration-500 ease-out ${
                 searchOpen ? "max-w-[640px] opacity-100" : "max-w-0 opacity-0"
               }`}
             >
@@ -515,9 +513,7 @@ function Hero() {
             <button
               type={searchOpen ? "submit" : "button"}
               onClick={handleSearchIconClick}
-              className={`size-14 overflow-hidden bg-white ring-2 ring-white shadow-2xl transition-all duration-300 cursor-pointer ${
-                searchOpen ? "rounded-r-full" : "rounded-full hover:scale-110"
-              }`}
+              className="size-28 shrink-0 cursor-pointer transition-transform duration-300 hover:scale-110 active:scale-95"
               aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
               <img
@@ -525,7 +521,7 @@ function Hero() {
                 alt=""
                 aria-hidden
                 draggable={false}
-                className="size-full object-cover object-center pointer-events-none"
+                className="size-full object-contain drop-shadow-[0_8px_20px_rgba(0,0,0,0.55)] pointer-events-none"
               />
             </button>
           </form>
