@@ -201,19 +201,59 @@ function useCarousel(length: number, getDuration: (idx: number) => number) {
     return () => clearTimeout(t);
   }, [currentSlide, length]);
 
+  const prev = () => length > 1 && setCurrentSlide((p) => (p - 1 + length) % length);
+  const next = () => length > 1 && setCurrentSlide((p) => (p + 1) % length);
+
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentSlide((prev) => (prev - 1 + length) % length);
+    prev();
   };
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setCurrentSlide((prev) => (prev + 1) % length);
+    next();
   };
   const handleDotClick = (idx: number) => {
     setCurrentSlide(idx);
   };
 
-  return { currentSlide, handlePrev, handleNext, handleDotClick };
+  return { currentSlide, prev, next, handlePrev, handleNext, handleDotClick };
+}
+
+// Swipe gesture detection that works for both touch and mouse drag via
+// PointerEvent. Threshold of 50px keeps incidental drags from advancing
+// the slider.
+function useSwipe(onLeft: () => void, onRight: () => void) {
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const THRESHOLD = 50;
+
+  return {
+    onPointerDown: (e: React.PointerEvent) => {
+      // Ignore interactive children (links, buttons, inputs) so they keep
+      // their normal click behaviour.
+      const tag = (e.target as HTMLElement).closest("a,button,input,select,textarea,iframe");
+      if (tag) {
+        startX.current = null;
+        return;
+      }
+      startX.current = e.clientX;
+      startY.current = e.clientY;
+    },
+    onPointerUp: (e: React.PointerEvent) => {
+      if (startX.current == null || startY.current == null) return;
+      const dx = e.clientX - startX.current;
+      const dy = e.clientY - startY.current;
+      startX.current = null;
+      startY.current = null;
+      // Only react to predominantly-horizontal swipes
+      if (Math.abs(dx) < THRESHOLD || Math.abs(dx) < Math.abs(dy)) return;
+      if (dx < 0) onLeft(); else onRight();
+    },
+    onPointerCancel: () => {
+      startX.current = null;
+      startY.current = null;
+    },
+  };
 }
 
 function Hero() {
@@ -273,10 +313,16 @@ function Hero() {
     // when open the icon is type=submit and click submits the form naturally
   };
 
+  const mobileSwipe = useSwipe(mobileCarousel.next, mobileCarousel.prev);
+  const desktopSwipe = useSwipe(desktopCarousel.next, desktopCarousel.prev);
+
   return (
     <>
       {/* ─── MOBILE HERO (< md) — vertical, centered, compact search ──────── */}
-      <section className="md:hidden relative w-full overflow-hidden bg-gray-900 h-[460px] flex items-end">
+      <section
+        className="md:hidden relative w-full overflow-hidden bg-gray-900 h-[460px] flex items-end touch-pan-y select-none"
+        {...mobileSwipe}
+      >
         {mobileSlides.map((slide, idx) => {
           const isActive = idx === mobileCarousel.currentSlide;
           return (
@@ -380,7 +426,10 @@ function Hero() {
       </section>
 
       {/* ─── DESKTOP HERO (md+) — wide, left-aligned, full search bar ──────── */}
-      <section className="hidden md:flex relative w-full overflow-hidden bg-gray-900 h-[600px] items-center group">
+      <section
+        className="hidden md:flex relative w-full overflow-hidden bg-gray-900 h-[600px] items-center group touch-pan-y select-none"
+        {...desktopSwipe}
+      >
         {desktopSlides.map((slide, idx) => {
           const isActive = idx === desktopCarousel.currentSlide;
           return (
