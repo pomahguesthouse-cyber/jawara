@@ -3,7 +3,7 @@ import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import {
   Search, MapPin, ChevronRight, ChevronLeft, Star, BadgeCheck, Heart,
-  Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame,
+  Shield, Zap, HeadphonesIcon, Users, TrendingUp, ChevronDown, Flame, X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { PublicShell } from "@/components/PublicShell";
@@ -257,11 +257,20 @@ function Hero() {
 
   const [q, setQ] = useState("");
   const [city, setCity] = useState("Semarang");
+  const [searchOpen, setSearchOpen] = useState(false);
   const navigate = useNavigate();
 
   const onSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
+  };
+
+  const handleSearchIconClick = (e: React.MouseEvent) => {
+    if (!searchOpen) {
+      e.preventDefault();
+      setSearchOpen(true);
+    }
+    // when open the icon is type=submit and click submits the form naturally
   };
 
   return (
@@ -303,39 +312,56 @@ function Hero() {
           );
         })}
 
-        {/* Mobile search: stacked, compact, no city selector in the bar */}
-        <div className="relative z-20 w-full px-4 pb-8">
+        {/* Mobile search: floating toggle — icon-only collapsed, slides in from right when open */}
+        <div className="absolute bottom-6 right-4 z-30 pointer-events-auto">
           <form
             onSubmit={onSearchSubmit}
-            className="bg-white rounded-2xl shadow-2xl p-2 flex items-stretch gap-1.5"
+            className="flex items-stretch"
           >
-            <div className="flex-1 flex items-center gap-2 px-3">
-              <Search className="size-4 text-gray-400 shrink-0" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Cari usaha atau produk..."
-                className="w-full h-11 bg-transparent text-sm focus:outline-none text-gray-700"
-              />
+            <div
+              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-l-full transition-[max-width,opacity] duration-500 ease-out ${
+                searchOpen ? "max-w-[calc(100vw-6.5rem)] opacity-100" : "max-w-0 opacity-0"
+              }`}
+            >
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="px-3 text-gray-400 active:text-gray-700 shrink-0"
+                aria-label="Tutup pencarian"
+              >
+                <X className="size-4" />
+              </button>
+              <div className="relative flex items-center gap-1 px-2 border-r border-gray-100 shrink-0">
+                <MapPin className="size-3.5 text-[#1a6b3c]" />
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="text-[11px] font-semibold text-gray-700 bg-transparent focus:outline-none pr-3 appearance-none max-w-[80px]"
+                >
+                  {CITIES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="flex-1 flex items-center px-2 min-w-0">
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Cari..."
+                  className="w-full h-11 bg-transparent text-sm focus:outline-none text-gray-700 placeholder:text-gray-400"
+                  autoFocus={searchOpen}
+                />
+              </div>
             </div>
             <button
-              type="submit"
-              className="h-11 px-4 bg-[#1a6b3c] active:bg-[#155c33] text-white font-bold rounded-xl text-sm shrink-0"
-              aria-label="Cari"
+              type={searchOpen ? "submit" : "button"}
+              onClick={handleSearchIconClick}
+              className={`size-12 grid place-items-center bg-[#1a6b3c] active:bg-[#155c33] text-white shadow-2xl transition-all duration-300 ${
+                searchOpen ? "rounded-r-full" : "rounded-full"
+              }`}
+              aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
             >
-              <Search className="size-4" />
+              <Search className="size-5" />
             </button>
           </form>
-          <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-white/80">
-            <MapPin className="size-3 text-emerald-300" />
-            <select
-              value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className="bg-transparent font-semibold focus:outline-none appearance-none text-center"
-            >
-              {CITIES.map((c) => <option key={c} className="text-gray-800">{c}</option>)}
-            </select>
-          </div>
         </div>
 
         {/* Dot Indicators (mobile) */}
@@ -391,14 +417,26 @@ function Hero() {
           );
         })}
 
-        {/* Desktop search: full bar with inline city selector */}
-        <div className="absolute bottom-20 left-0 right-0 z-20 px-8 pointer-events-none">
-          <div className="mx-auto max-w-3xl pointer-events-auto animate-fade-up">
-            <form
-              onSubmit={onSearchSubmit}
-              className="flex items-center bg-white rounded-full p-1.5 shadow-2xl gap-2 text-gray-800"
+        {/* Desktop search: floating toggle — icon-only collapsed, slides in from right when open */}
+        <div className="absolute bottom-20 right-8 z-30 pointer-events-auto">
+          <form
+            onSubmit={onSearchSubmit}
+            className="flex items-stretch"
+          >
+            <div
+              className={`flex items-stretch overflow-hidden bg-white shadow-2xl rounded-l-full transition-[max-width,opacity] duration-500 ease-out ${
+                searchOpen ? "max-w-[640px] opacity-100" : "max-w-0 opacity-0"
+              }`}
             >
-              <div className="relative flex items-center gap-1.5 px-3 py-2.5 border-r border-gray-100 shrink-0">
+              <button
+                type="button"
+                onClick={() => setSearchOpen(false)}
+                className="px-3 text-gray-400 hover:text-gray-700 shrink-0"
+                aria-label="Tutup pencarian"
+              >
+                <X className="size-4" />
+              </button>
+              <div className="relative flex items-center gap-1.5 px-3 border-r border-gray-100 shrink-0">
                 <MapPin className="size-4 text-[#1a6b3c]" />
                 <select
                   value={city}
@@ -409,23 +447,27 @@ function Hero() {
                 </select>
                 <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
               </div>
-              <div className="flex-1 flex items-center gap-2 px-3">
-                <Search className="size-4 text-gray-400 shrink-0" />
+              <div className="flex-1 flex items-center gap-2 px-3 min-w-[260px]">
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Cari usaha, produk, kategori..."
-                  className="w-full h-10 bg-transparent text-sm focus:outline-none text-gray-700"
+                  className="w-full h-12 bg-transparent text-sm focus:outline-none text-gray-700 placeholder:text-gray-400"
+                  autoFocus={searchOpen}
                 />
               </div>
-              <button
-                type="submit"
-                className="h-12 px-6 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold rounded-full transition flex items-center gap-2 shrink-0 cursor-pointer"
-              >
-                Cari Sekarang <ChevronRight className="size-4" />
-              </button>
-            </form>
-          </div>
+            </div>
+            <button
+              type={searchOpen ? "submit" : "button"}
+              onClick={handleSearchIconClick}
+              className={`size-14 grid place-items-center bg-[#1a6b3c] hover:bg-[#155c33] text-white shadow-2xl transition-all duration-300 cursor-pointer ${
+                searchOpen ? "rounded-r-full" : "rounded-full hover:scale-105"
+              }`}
+              aria-label={searchOpen ? "Cari sekarang" : "Buka pencarian"}
+            >
+              <Search className="size-5" />
+            </button>
+          </form>
         </div>
 
         {/* Navigation Arrows (Desktop Only) */}
