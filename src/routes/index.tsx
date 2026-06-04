@@ -157,126 +157,206 @@ function Hero() {
     setCurrentSlide(idx);
   };
 
-  return (
-    <section className="relative w-full overflow-hidden bg-gray-900 min-h-[520px] sm:h-[580px] flex items-center group">
-      {/* Slides */}
-      {slides.map((slide, idx) => {
-        const isActive = idx === currentSlide;
-        return (
-          <div
-            key={slide.id}
-            className={`absolute inset-0 size-full transition-opacity duration-1000 ease-in-out flex items-center ${
-              isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
-            }`}
-          >
-            {/* Background Image */}
-            <img
-              src={slide.image}
-              alt=""
-              className="absolute inset-0 size-full object-cover object-center"
-            />
-            {/* Dark gradient overlay for typography readability */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-black/35 lg:to-black/10" />
+  const onSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
+  };
 
-            {/* Slide Content container */}
-            <div className="relative z-10 mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
-              <div className="max-w-2xl text-white space-y-6 py-12 md:py-16">
-                <h1 className="text-3xl sm:text-5xl font-black leading-[1.1] tracking-tight animate-fade-up">
+  return (
+    <>
+      {/* ─── MOBILE HERO (< md) — vertical, centered, compact search ──────── */}
+      <section className="md:hidden relative w-full overflow-hidden bg-gray-900 h-[460px] flex items-end">
+        {slides.map((slide, idx) => {
+          const isActive = idx === currentSlide;
+          return (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 size-full transition-opacity duration-700 ease-in-out ${
+                isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+              }`}
+            >
+              <img src={slide.image} alt="" className="absolute inset-0 size-full object-cover object-center" />
+              {/* Strong vertical gradient: image visible up top, dark below for text */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/55 to-black/95" />
+              <div className="absolute inset-x-0 bottom-28 px-5 z-10 text-center text-white">
+                <h1 className="text-2xl font-black leading-tight tracking-tight animate-fade-up">
                   {slide.title}
                 </h1>
-                <p className="text-gray-200 text-sm sm:text-base max-w-lg leading-relaxed animate-fade-up">
+                <p className="text-gray-200 text-xs leading-relaxed mt-2 line-clamp-2 animate-fade-up">
                   {slide.subtext}
                 </p>
-
                 {slide.type === "button" && (
-                  <div className="pt-2 animate-fade-up">
+                  <div className="pt-4 animate-fade-up">
                     <Link
                       to={slide.btnTo!}
                       search={slide.btnSearch as never}
-                      className="inline-flex items-center gap-2 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold px-7 py-3.5 rounded-full text-sm sm:text-base transition shadow-md cursor-pointer"
+                      className="inline-flex items-center gap-1.5 bg-[#1a6b3c] active:bg-[#155c33] text-white font-bold px-5 py-2.5 rounded-full text-sm shadow-md"
                     >
-                      {slide.btnText} <ChevronRight className="size-5" />
+                      {slide.btnText} <ChevronRight className="size-4" />
                     </Link>
                   </div>
                 )}
               </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
 
-      {/* Search box pinned to the bottom of the hero, across all slides */}
-      <div className="absolute bottom-16 sm:bottom-20 left-0 right-0 z-20 px-4 sm:px-6 lg:px-8 pointer-events-none">
-        <div className="mx-auto max-w-3xl pointer-events-auto animate-fade-up">
+        {/* Mobile search: stacked, compact, no city selector in the bar */}
+        <div className="relative z-20 w-full px-4 pb-8">
           <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              navigate({ to: "/direktori", search: { q, kota: city === "Semua Kota" ? undefined : city } as never });
-            }}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center bg-white rounded-2xl sm:rounded-full p-1.5 shadow-2xl gap-2 text-gray-800"
+            onSubmit={onSearchSubmit}
+            className="bg-white rounded-2xl shadow-2xl p-2 flex items-stretch gap-1.5"
           >
-            <div className="relative flex items-center gap-1.5 px-3 py-2.5 border-b sm:border-b-0 sm:border-r border-gray-100 shrink-0">
-              <MapPin className="size-4 text-[#1a6b3c]" />
-              <select
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                className="text-sm font-semibold text-gray-700 bg-transparent focus:outline-none pr-5 appearance-none cursor-pointer w-full"
-              >
-                {CITIES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-              <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
-            </div>
-
-            <div className="flex-1 flex items-center gap-2 px-3 py-2 sm:py-0">
+            <div className="flex-1 flex items-center gap-2 px-3">
               <Search className="size-4 text-gray-400 shrink-0" />
               <input
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Cari usaha, produk, kategori..."
-                className="w-full h-10 bg-transparent text-sm focus:outline-none text-gray-700"
+                placeholder="Cari usaha atau produk..."
+                className="w-full h-11 bg-transparent text-sm focus:outline-none text-gray-700"
               />
             </div>
-
             <button
               type="submit"
-              className="h-11 sm:h-12 px-6 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold rounded-xl sm:rounded-full transition flex items-center justify-center gap-2 shrink-0 cursor-pointer"
+              className="h-11 px-4 bg-[#1a6b3c] active:bg-[#155c33] text-white font-bold rounded-xl text-sm shrink-0"
+              aria-label="Cari"
             >
-              Cari Sekarang <ChevronRight className="size-4" />
+              <Search className="size-4" />
             </button>
           </form>
+          <div className="mt-2 flex items-center justify-center gap-1.5 text-[11px] text-white/80">
+            <MapPin className="size-3 text-emerald-300" />
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="bg-transparent font-semibold focus:outline-none appearance-none text-center"
+            >
+              {CITIES.map((c) => <option key={c} className="text-gray-800">{c}</option>)}
+            </select>
+          </div>
         </div>
-      </div>
 
-      {/* Navigation Arrows (Desktop Only) */}
-      <button
-        onClick={handlePrev}
-        className="absolute left-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer md:flex hidden"
-        aria-label="Slide sebelumnya"
-      >
-        <ChevronLeft className="size-5" />
-      </button>
-      <button
-        onClick={handleNext}
-        className="absolute right-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer md:flex hidden"
-        aria-label="Slide berikutnya"
-      >
-        <ChevronRight className="size-5" />
-      </button>
+        {/* Dot Indicators (mobile) */}
+        <div className="absolute top-4 left-0 right-0 z-20 flex justify-center gap-1.5">
+          {slides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleDotClick(idx)}
+              className={`h-1 rounded-full transition-all cursor-pointer ${
+                idx === currentSlide ? "bg-emerald-400 w-6" : "bg-white/40 w-3"
+              }`}
+              aria-label={`Ke slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      </section>
 
-      {/* Dot Indicators */}
-      <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2.5">
-        {slides.map((_, idx) => (
-          <button
-            key={idx}
-            onClick={() => handleDotClick(idx)}
-            className={`size-2.5 rounded-full transition-all cursor-pointer ${
-              idx === currentSlide ? "bg-[#1a6b3c] w-6" : "bg-white/40 hover:bg-white/70"
-            }`}
-            aria-label={`Ke slide ${idx + 1}`}
-          />
-        ))}
-      </div>
-    </section>
+      {/* ─── DESKTOP HERO (md+) — wide, left-aligned, full search bar ──────── */}
+      <section className="hidden md:flex relative w-full overflow-hidden bg-gray-900 h-[600px] items-center group">
+        {slides.map((slide, idx) => {
+          const isActive = idx === currentSlide;
+          return (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 size-full transition-opacity duration-1000 ease-in-out flex items-center ${
+                isActive ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+              }`}
+            >
+              <img src={slide.image} alt="" className="absolute inset-0 size-full object-cover object-center" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/55 to-black/10" />
+              <div className="relative z-10 mx-auto max-w-7xl w-full px-8 flex flex-col justify-center">
+                <div className="max-w-2xl text-white space-y-6 py-16">
+                  <h1 className="text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight animate-fade-up">
+                    {slide.title}
+                  </h1>
+                  <p className="text-gray-200 text-base lg:text-lg max-w-xl leading-relaxed animate-fade-up">
+                    {slide.subtext}
+                  </p>
+                  {slide.type === "button" && (
+                    <div className="pt-2 animate-fade-up">
+                      <Link
+                        to={slide.btnTo!}
+                        search={slide.btnSearch as never}
+                        className="inline-flex items-center gap-2 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold px-7 py-3.5 rounded-full text-base transition shadow-md cursor-pointer"
+                      >
+                        {slide.btnText} <ChevronRight className="size-5" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Desktop search: full bar with inline city selector */}
+        <div className="absolute bottom-20 left-0 right-0 z-20 px-8 pointer-events-none">
+          <div className="mx-auto max-w-3xl pointer-events-auto animate-fade-up">
+            <form
+              onSubmit={onSearchSubmit}
+              className="flex items-center bg-white rounded-full p-1.5 shadow-2xl gap-2 text-gray-800"
+            >
+              <div className="relative flex items-center gap-1.5 px-3 py-2.5 border-r border-gray-100 shrink-0">
+                <MapPin className="size-4 text-[#1a6b3c]" />
+                <select
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  className="text-sm font-semibold text-gray-700 bg-transparent focus:outline-none pr-5 appearance-none cursor-pointer"
+                >
+                  {CITIES.map((c) => <option key={c}>{c}</option>)}
+                </select>
+                <ChevronDown className="size-3.5 text-gray-400 absolute right-3 pointer-events-none" />
+              </div>
+              <div className="flex-1 flex items-center gap-2 px-3">
+                <Search className="size-4 text-gray-400 shrink-0" />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Cari usaha, produk, kategori..."
+                  className="w-full h-10 bg-transparent text-sm focus:outline-none text-gray-700"
+                />
+              </div>
+              <button
+                type="submit"
+                className="h-12 px-6 bg-[#1a6b3c] hover:bg-[#155c33] text-white font-bold rounded-full transition flex items-center gap-2 shrink-0 cursor-pointer"
+              >
+                Cari Sekarang <ChevronRight className="size-4" />
+              </button>
+            </form>
+          </div>
+        </div>
+
+        {/* Navigation Arrows (Desktop Only) */}
+        <button
+          onClick={handlePrev}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
+          aria-label="Slide sebelumnya"
+        >
+          <ChevronLeft className="size-5" />
+        </button>
+        <button
+          onClick={handleNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 size-10 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition cursor-pointer"
+          aria-label="Slide berikutnya"
+        >
+          <ChevronRight className="size-5" />
+        </button>
+
+        {/* Dot Indicators (desktop) */}
+        <div className="absolute bottom-6 left-0 right-0 z-20 flex justify-center gap-2.5">
+          {slides.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => handleDotClick(idx)}
+              className={`size-2.5 rounded-full transition-all cursor-pointer ${
+                idx === currentSlide ? "bg-[#1a6b3c] w-6" : "bg-white/40 hover:bg-white/70"
+              }`}
+              aria-label={`Ke slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      </section>
+    </>
   );
 }
 
