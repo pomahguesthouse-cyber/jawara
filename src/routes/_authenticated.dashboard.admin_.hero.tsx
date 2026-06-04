@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 
 // ─── Route Definition ────────────────────────────────────────────────────────
-export const Route = createFileRoute("/_authenticated/dashboard/admin/hero")({
+export const Route = createFileRoute("/_authenticated/dashboard/admin_/hero")({
   ssr: false,
   beforeLoad: ({ context }) => {
     if (!context.isSuperAdmin) {
