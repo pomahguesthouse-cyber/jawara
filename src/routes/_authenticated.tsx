@@ -21,7 +21,7 @@ export const Route = createFileRoute("/_authenticated")({
     return { 
       user: data.user,
       // Mengunci akses admin khusus untuk email Anda saat ini
-      isSuperAdmin: !!roleData || data.user.email === 'pomahguesthouse@gmail.com'
+      isSuperAdmin: !!roleData || data.user.email === 'ical.smg@gmail.com'
     };
   },
   component: DashboardLayout,

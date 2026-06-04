@@ -64,8 +64,8 @@ function AdminDashboard() {
         .from("umkm_profiles")
         .select(`
           id, name, slug, city, is_verified, is_published, rating, created_at,
-          category:categories(name),
-          owner:auth.users!umkm_profiles_owner_id_fkey(email)
+          owner_id,
+          category:categories(name)
         `)
         .order("created_at", { ascending: false });
 
@@ -341,7 +341,7 @@ function AdminDashboard() {
                         </span>
                       </td>
                       <td className="px-6 py-4.5 text-xs font-mono text-gray-500">
-                        {u.owner?.email || "Unknown user"}
+                        {u.owner_id}
                       </td>
                       <td className="px-6 py-4.5">
                         <div className="flex items-center justify-center gap-2">
