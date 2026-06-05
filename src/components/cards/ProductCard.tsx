@@ -1,6 +1,12 @@
 import { Link } from "@tanstack/react-router";
 import { formatRupiah } from "@/lib/format";
 
+function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(clean);
+}
+
 export interface ProductCardData {
   id: string;
   name: string;
@@ -15,12 +21,24 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     <div className="group">
       <div className="aspect-[4/5] w-full rounded-2xl bg-muted overflow-hidden ring-1 ring-border mb-3">
         {product.image_url ? (
-          <img
-            src={product.image_url}
-            alt={product.name}
-            loading="lazy"
-            className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
-          />
+          isVideoUrl(product.image_url) ? (
+            <video
+              src={product.image_url}
+              muted
+              loop
+              playsInline
+              autoPlay
+              preload="metadata"
+              className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <img
+              src={product.image_url}
+              alt={product.name}
+              loading="lazy"
+              className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          )
         ) : (
           <div className="size-full grid place-items-center text-muted-foreground text-xs uppercase tracking-wider">
             Tanpa Foto
