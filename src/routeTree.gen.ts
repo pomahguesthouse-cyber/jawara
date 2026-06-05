@@ -16,14 +16,16 @@ import { Route as DirektoriRouteImport } from './routes/direktori'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ArtikelRouteImport } from './routes/artikel'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdminLoginRouteImport } from './routes/admin_.login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as UmkmSlugRouteImport } from './routes/umkm.$slug'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated.dashboard.index'
 import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated.dashboard.profil'
 import { Route as AuthenticatedDashboardProdukRouteImport } from './routes/_authenticated.dashboard.produk'
-import { Route as AuthenticatedDashboardAdminRouteImport } from './routes/_authenticated.dashboard.admin'
-import { Route as AuthenticatedDashboardAdminHeroRouteImport } from './routes/_authenticated.dashboard.admin_.hero'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminHeroRouteImport } from './routes/admin.hero'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -59,6 +61,16 @@ const AuthenticatedRoute = AuthenticatedRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin_/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -92,18 +104,16 @@ const AuthenticatedDashboardProdukRoute =
     path: '/produk',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AuthenticatedDashboardAdminRoute =
-  AuthenticatedDashboardAdminRouteImport.update({
-    id: '/admin',
-    path: '/admin',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
-const AuthenticatedDashboardAdminHeroRoute =
-  AuthenticatedDashboardAdminHeroRouteImport.update({
-    id: '/admin_/hero',
-    path: '/admin/hero',
-    getParentRoute: () => AuthenticatedDashboardRoute,
-  } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminHeroRoute = AdminHeroRouteImport.update({
+  id: '/hero',
+  path: '/hero',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -113,12 +123,14 @@ export interface FileRoutesByFullPath {
   '/event': typeof EventRoute
   '/marketplace': typeof MarketplaceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/login': typeof AdminLoginRoute
+  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
   '/umkm/$slug': typeof UmkmSlugRoute
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
-  '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
-  '/dashboard/admin/hero': typeof AuthenticatedDashboardAdminHeroRoute
+  '/admin/hero': typeof AdminHeroRoute
+  '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -129,17 +141,20 @@ export interface FileRoutesByTo {
   '/event': typeof EventRoute
   '/marketplace': typeof MarketplaceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/login': typeof AdminLoginRoute
   '/umkm/$slug': typeof UmkmSlugRoute
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
-  '/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
-  '/dashboard/admin/hero': typeof AuthenticatedDashboardAdminHeroRoute
+  '/admin/hero': typeof AdminHeroRoute
+  '/admin': typeof AdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
+  '/admin': typeof AdminRouteWithChildren
+  '/admin_/login': typeof AdminLoginRoute
   '/artikel': typeof ArtikelRoute
   '/auth': typeof AuthRoute
   '/direktori': typeof DirektoriRoute
@@ -150,8 +165,8 @@ export interface FileRoutesById {
   '/umkm/$slug': typeof UmkmSlugRoute
   '/_authenticated/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
-  '/_authenticated/dashboard/admin': typeof AuthenticatedDashboardAdminRoute
-  '/_authenticated/dashboard/admin_/hero': typeof AuthenticatedDashboardAdminHeroRoute
+  '/admin/hero': typeof AdminHeroRoute
+  '/admin/': typeof AdminIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -164,12 +179,14 @@ export interface FileRouteTypes {
     | '/event'
     | '/marketplace'
     | '/sitemap.xml'
+    | '/admin/login'
+    | '/admin'
     | '/dashboard'
     | '/umkm/$slug'
     | '/dashboard/produk'
     | '/dashboard/profil'
-    | '/dashboard/admin'
-    | '/dashboard/admin/hero'
+    | '/admin/hero'
+    | '/admin/'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -180,16 +197,19 @@ export interface FileRouteTypes {
     | '/event'
     | '/marketplace'
     | '/sitemap.xml'
+    | '/admin/login'
     | '/umkm/$slug'
     | '/dashboard/produk'
     | '/dashboard/profil'
-    | '/dashboard/admin'
-    | '/dashboard/admin/hero'
+    | '/admin/hero'
+    | '/admin'
     | '/dashboard'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
+    | '/admin'
+    | '/admin_/login'
     | '/artikel'
     | '/auth'
     | '/direktori'
@@ -200,14 +220,16 @@ export interface FileRouteTypes {
     | '/umkm/$slug'
     | '/_authenticated/dashboard/produk'
     | '/_authenticated/dashboard/profil'
-    | '/_authenticated/dashboard/admin'
-    | '/_authenticated/dashboard/admin_/hero'
+    | '/admin/hero'
+    | '/admin/'
     | '/_authenticated/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
+  AdminRoute: typeof AdminRouteWithChildren
+  AdminLoginRoute: typeof AdminLoginRoute
   ArtikelRoute: typeof ArtikelRoute
   AuthRoute: typeof AuthRoute
   DirektoriRoute: typeof DirektoriRoute
@@ -268,6 +290,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin_/login': {
+      id: '/admin_/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -310,28 +346,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardProdukRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/_authenticated/dashboard/admin': {
-      id: '/_authenticated/dashboard/admin'
-      path: '/admin'
-      fullPath: '/dashboard/admin'
-      preLoaderRoute: typeof AuthenticatedDashboardAdminRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
     }
-    '/_authenticated/dashboard/admin_/hero': {
-      id: '/_authenticated/dashboard/admin_/hero'
-      path: '/admin/hero'
-      fullPath: '/dashboard/admin/hero'
-      preLoaderRoute: typeof AuthenticatedDashboardAdminHeroRouteImport
-      parentRoute: typeof AuthenticatedDashboardRoute
+    '/admin/hero': {
+      id: '/admin/hero'
+      path: '/hero'
+      fullPath: '/admin/hero'
+      preLoaderRoute: typeof AdminHeroRouteImport
+      parentRoute: typeof AdminRoute
     }
   }
 }
 
+interface AdminRouteChildren {
+  AdminIndexRoute: typeof AdminIndexRoute
+  AdminHeroRoute: typeof AdminHeroRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminIndexRoute: AdminIndexRoute,
+  AdminHeroRoute: AdminHeroRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardProdukRoute: typeof AuthenticatedDashboardProdukRoute
   AuthenticatedDashboardProfilRoute: typeof AuthenticatedDashboardProfilRoute
-  AuthenticatedDashboardAdminRoute: typeof AuthenticatedDashboardAdminRoute
-  AuthenticatedDashboardAdminHeroRoute: typeof AuthenticatedDashboardAdminHeroRoute
   AuthenticatedDashboardIndexRoute: typeof AuthenticatedDashboardIndexRoute
 }
 
@@ -339,8 +385,6 @@ const AuthenticatedDashboardRouteChildren: AuthenticatedDashboardRouteChildren =
   {
     AuthenticatedDashboardProdukRoute: AuthenticatedDashboardProdukRoute,
     AuthenticatedDashboardProfilRoute: AuthenticatedDashboardProfilRoute,
-    AuthenticatedDashboardAdminRoute: AuthenticatedDashboardAdminRoute,
-    AuthenticatedDashboardAdminHeroRoute: AuthenticatedDashboardAdminHeroRoute,
     AuthenticatedDashboardIndexRoute: AuthenticatedDashboardIndexRoute,
   }
 
@@ -364,6 +408,8 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
+  AdminRoute: AdminRouteWithChildren,
+  AdminLoginRoute: AdminLoginRoute,
   ArtikelRoute: ArtikelRoute,
   AuthRoute: AuthRoute,
   DirektoriRoute: DirektoriRoute,
