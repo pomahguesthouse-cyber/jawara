@@ -5,8 +5,18 @@ export type PromoType = "promo" | "diskon" | "lainnya" | null | undefined;
 interface Props {
   type: PromoType;
   text?: string | null;
+  /** ISO timestamp. If set and in the past, the badge does not render. */
+  expiresAt?: string | null;
   /** Compact = pill for card overlays. Inline = chip for content rows. */
   variant?: "compact" | "inline";
+}
+
+/** True when the promo has an expires_at that is already in the past. */
+export function isPromoExpired(expiresAt: string | null | undefined): boolean {
+  if (!expiresAt) return false;
+  const ts = Date.parse(expiresAt);
+  if (!Number.isFinite(ts)) return false;
+  return ts < Date.now();
 }
 
 const PRESETS: Record<NonNullable<PromoType>, {
@@ -39,8 +49,9 @@ const PRESETS: Record<NonNullable<PromoType>, {
   },
 };
 
-export function PromoBadge({ type, text, variant = "compact" }: Props) {
+export function PromoBadge({ type, text, expiresAt, variant = "compact" }: Props) {
   if (!type) return null;
+  if (isPromoExpired(expiresAt)) return null;
   const preset = PRESETS[type];
   if (!preset) return null;
   const Icon = preset.icon;

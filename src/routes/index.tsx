@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { PublicShell } from "@/components/PublicShell";
 import { formatRupiah } from "@/lib/format";
 import { PromoBadge } from "@/components/cards/PromoBadge";
+import { PromoPrice } from "@/components/cards/PromoPrice";
 
 // ─── Query ───────────────────────────────────────────────────────────────────
 const homeQueryOptions = queryOptions({
@@ -16,7 +17,7 @@ const homeQueryOptions = queryOptions({
   queryFn: async () => {
     const [umkm, products, umkmProducts, productCountRows, events, articles, categories, heroSlidesResult, searchIconResult] = await Promise.all([
       supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(name)").eq("is_published", true).order("rating", { ascending: false }).limit(8),
-      supabase.from("products").select("id, name, price, image_url, promo_type, promo_text, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
+      supabase.from("products").select("id, name, price, image_url, promo_type, promo_text, promo_expires_at, original_price, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
       supabase.from("products").select("umkm_id, image_url").eq("is_published", true).not("image_url", "is", null).order("created_at", { ascending: false }).limit(100),
       // Counted separately (no limit, no filter on image) so the card badge
@@ -970,7 +971,11 @@ function LatestProducts() {
               <div className="relative aspect-[4/5] w-full rounded-2xl bg-gray-100 overflow-hidden ring-1 ring-gray-100 mb-2.5">
                 {(p as any).promo_type && (
                   <div className="absolute top-2.5 left-2.5 z-10">
-                    <PromoBadge type={(p as any).promo_type} text={(p as any).promo_text} />
+                    <PromoBadge
+                      type={(p as any).promo_type}
+                      text={(p as any).promo_text}
+                      expiresAt={(p as any).promo_expires_at}
+                    />
                   </div>
                 )}
                 {p.image_url ? (
@@ -992,7 +997,12 @@ function LatestProducts() {
                 )}
               </div>
               <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1 group-hover:text-[#1a6b3c] transition-colors">{p.name}</h3>
-              <p className="text-sm font-bold text-[#1a6b3c]">{formatRupiah(p.price)}</p>
+              <PromoPrice
+                price={p.price}
+                originalPrice={(p as any).original_price}
+                expiresAt={(p as any).promo_expires_at}
+                priceClass="text-sm font-bold text-[#1a6b3c]"
+              />
               {p.umkm && (
                 <p className="text-[11px] text-gray-400 mt-0.5 truncate">oleh {(p.umkm as { name: string }).name}</p>
               )}
