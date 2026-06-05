@@ -120,6 +120,16 @@ function DetailUmkm() {
                     <Phone className="size-4" /> WhatsApp
                   </a>
                 )}
+                {umkm.google_maps_url && (
+                  <a
+                    href={umkm.google_maps_url}
+                    target="_blank"
+                    rel="noopener"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-card ring-1 ring-border text-sm font-semibold hover:border-primary"
+                  >
+                    <MapPin className="size-4" /> Google Maps
+                  </a>
+                )}
                 {umkm.website && (
                   <a href={umkm.website} target="_blank" rel="noopener" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-card ring-1 ring-border text-sm font-semibold hover:border-primary">
                     <Globe className="size-4" /> Website
