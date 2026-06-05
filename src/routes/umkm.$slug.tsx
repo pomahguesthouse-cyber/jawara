@@ -5,6 +5,12 @@ import { PublicShell } from "@/components/PublicShell";
 import { ProductCard } from "@/components/cards/ProductCard";
 import { MapPin, Phone, Globe, Star, BadgeCheck, Instagram, Facebook } from "lucide-react";
 
+function isVideoBanner(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(clean);
+}
+
 const umkmQuery = (slug: string) =>
   queryOptions({
     queryKey: ["umkm", slug],
@@ -55,7 +61,21 @@ function DetailUmkm() {
     <PublicShell>
       {/* Banner */}
       <div className="h-48 sm:h-64 bg-gradient-to-br from-primary-soft to-primary/20 relative">
-        {umkm.banner_url && <img src={umkm.banner_url} alt="" className="size-full object-cover" />}
+        {umkm.banner_url && (
+          isVideoBanner(umkm.banner_url) ? (
+            <video
+              src={umkm.banner_url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="size-full object-cover"
+            />
+          ) : (
+            <img src={umkm.banner_url} alt="" className="size-full object-cover" />
+          )
+        )}
       </div>
 
       <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 -mt-16 relative">

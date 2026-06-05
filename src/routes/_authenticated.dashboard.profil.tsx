@@ -28,6 +28,16 @@ interface UmkmForm {
   category_id: string;
 }
 
+// A banner_url is treated as a video when it ends with a known video
+// extension OR contains an explicit video MIME indicator in the path
+// (covers Supabase Storage URLs that include the extension before any
+// transform query string).
+export function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(clean);
+}
+
 const empty: UmkmForm = {
   name: "", slug: "", description: "", city: "Semarang", district: "",
   address: "", whatsapp: "", email: "", website: "", instagram: "",
@@ -88,13 +98,23 @@ function ProfilPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      toast.error('File harus berupa gambar');
+    const isVideo = file.type.startsWith('video/');
+    const isImage = file.type.startsWith('image/');
+
+    // Logos are always images. Banners may be image OR video.
+    if (type === 'logo' && !isImage) {
+      toast.error('Logo harus berupa gambar');
+      return;
+    }
+    if (type === 'banner' && !isImage && !isVideo) {
+      toast.error('Banner harus berupa gambar atau video');
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File terlalu besar, maksimal 5MB');
+    // Different size caps for video vs image (video is bigger by nature).
+    const maxBytes = isVideo ? 30 * 1024 * 1024 : 5 * 1024 * 1024;
+    if (file.size > maxBytes) {
+      toast.error(`File terlalu besar, maksimal ${isVideo ? '30MB' : '5MB'}`);
       return;
     }
 
@@ -102,17 +122,27 @@ function ProfilPage() {
     setUploading(true);
 
     try {
-      // 1. Compress image to a reasonable size
-      const maxW = type === 'logo' ? 300 : 1200;
-      const maxH = type === 'logo' ? 300 : 400;
-      const compressedBase64 = await compressImage(file, maxW, maxH);
-
-      // 2. Attempt to upload to Supabase Storage (public/logos or public/banners path)
       const bucketName = 'umkm_assets';
-      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileExt = file.name.split('.').pop() || (isVideo ? 'mp4' : 'jpg');
       const fileName = `${user.id}/${type}_${Date.now()}.${fileExt}`;
-      
-      let finalUrl = compressedBase64; // fallback is the base64 string itself
+
+      // Image path: compress first, then upload the compressed JPEG.
+      // Video path: upload the original file unchanged.
+      let uploadFile: File;
+      let finalUrl: string;
+
+      if (isVideo) {
+        uploadFile = file;
+        finalUrl = ''; // will be filled by the public URL after upload; no base64 fallback for video
+      } else {
+        const maxW = type === 'logo' ? 300 : 1200;
+        const maxH = type === 'logo' ? 300 : 400;
+        const compressedBase64 = await compressImage(file, maxW, maxH);
+        const response = await fetch(compressedBase64);
+        const blob = await response.blob();
+        uploadFile = new File([blob], `${type}.jpg`, { type: 'image/jpeg' });
+        finalUrl = compressedBase64; // fallback if storage upload fails
+      }
 
       try {
         await supabase.storage.createBucket(bucketName, { public: true });
@@ -121,29 +151,31 @@ function ProfilPage() {
       }
 
       try {
-        const response = await fetch(compressedBase64);
-        const blob = await response.blob();
-        const uploadFile = new File([blob], `${type}.jpg`, { type: 'image/jpeg' });
-
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from(bucketName)
-          .upload(fileName, uploadFile, { upsert: true });
+          .upload(fileName, uploadFile, { upsert: true, contentType: uploadFile.type });
 
         if (!uploadError && uploadData) {
           const { data: { publicUrl } } = supabase.storage
             .from(bucketName)
             .getPublicUrl(uploadData.path);
-          
           finalUrl = publicUrl;
+        } else if (isVideo) {
+          // Videos cannot fall back to base64 — fail hard so the user knows.
+          throw uploadError ?? new Error("Upload video gagal");
         } else {
           console.warn("Storage upload failed, fallback to base64 saving:", uploadError?.message);
         }
       } catch (uploadErr) {
+        if (isVideo) {
+          toast.error(`Gagal upload video: ${(uploadErr as Error)?.message ?? "unknown"}`);
+          return;
+        }
         console.warn("Storage upload error, using base64 direct DB storage instead:", uploadErr);
       }
 
       update(type === 'logo' ? 'logo_url' : 'banner_url', finalUrl);
-      toast.success(`${type === 'logo' ? 'Logo' : 'Banner'} berhasil diproses`);
+      toast.success(`${type === 'logo' ? 'Logo' : (isVideo ? 'Video banner' : 'Banner')} berhasil diproses`);
     } catch (err) {
       toast.error('Gagal memproses gambar');
       console.error(err);
@@ -372,11 +404,22 @@ function ProfilPage() {
               <div className="relative h-32 w-full rounded-2xl border-2 border-dashed border-border hover:border-primary transition flex flex-col items-center justify-center overflow-hidden bg-muted group">
                 {form.banner_url ? (
                   <>
-                    <img src={form.banner_url} alt="Banner Preview" className="size-full object-cover" />
+                    {isVideoUrl(form.banner_url) ? (
+                      <video
+                        src={form.banner_url}
+                        autoPlay
+                        muted
+                        loop
+                        playsInline
+                        className="size-full object-cover"
+                      />
+                    ) : (
+                      <img src={form.banner_url} alt="Banner Preview" className="size-full object-cover" />
+                    )}
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-2">
                       <label className="p-2 bg-background rounded-lg cursor-pointer hover:bg-muted text-foreground transition flex items-center gap-1 text-xs font-semibold">
                         <Upload className="size-4" /> Ganti Banner
-                        <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} className="hidden" disabled={uploadingBanner} />
+                        <input type="file" accept="image/*,video/*" onChange={(e) => handleFileChange(e, 'banner')} className="hidden" disabled={uploadingBanner} />
                       </label>
                       <button type="button" onClick={() => update('banner_url', '')} className="p-2 bg-destructive text-destructive-foreground rounded-lg hover:opacity-90 transition flex items-center gap-1 text-xs font-semibold">
                         <Trash2 className="size-4" /> Hapus
@@ -386,9 +429,9 @@ function ProfilPage() {
                 ) : (
                   <label className="size-full flex flex-col items-center justify-center cursor-pointer text-muted-foreground hover:text-primary transition gap-2">
                     <Image className="size-6" />
-                    <span className="text-xs font-medium">Pilih Banner Usaha</span>
-                    <span className="text-[10px] text-muted-foreground">Rekomendasi 1200x400 piksel</span>
-                    <input type="file" accept="image/*" onChange={(e) => handleFileChange(e, 'banner')} className="hidden" disabled={uploadingBanner} />
+                    <span className="text-xs font-medium">Pilih Banner (gambar / video)</span>
+                    <span className="text-[10px] text-muted-foreground">Gambar maks 5MB · Video maks 30MB</span>
+                    <input type="file" accept="image/*,video/*" onChange={(e) => handleFileChange(e, 'banner')} className="hidden" disabled={uploadingBanner} />
                   </label>
                 )}
                 {uploadingBanner && (

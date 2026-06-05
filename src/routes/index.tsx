@@ -154,6 +154,13 @@ type HeroSlideVM = {
 const DEFAULT_HERO_DURATION = 6000;
 const MIN_HERO_DURATION = 1000;
 
+// Banner URL → is this a video file (.mp4 / .webm / .mov / ...)?
+function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(clean);
+}
+
 // Convert various video URLs (YouTube, Vimeo, direct .mp4) into something
 // we can render as background. Returns either { kind: 'iframe', src } or
 // { kind: 'video', src }.
@@ -720,8 +727,20 @@ function UmkmCard({ umkm, productImages = [], productCount = 0 }: { umkm: UmkmDa
       {/* Image area */}
       <div className="relative h-40 bg-gray-100 overflow-hidden">
         {hasBanner ? (
-          /* 1. UMKM has a dedicated banner → show it */
-          <img src={umkm.banner_url!} alt={umkm.name} className="size-full object-cover" />
+          /* 1. UMKM has a dedicated banner → show it (video or image) */
+          isVideoUrl(umkm.banner_url) ? (
+            <video
+              src={umkm.banner_url!}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="size-full object-cover"
+            />
+          ) : (
+            <img src={umkm.banner_url!} alt={umkm.name} className="size-full object-cover" />
+          )
         ) : hasProductPhotos ? (
           /* 2. No banner but has product photos → auto-slideshow */
           <ProductSlideshow images={productImages} alt={umkm.name} />
