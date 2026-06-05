@@ -13,11 +13,15 @@ import { formatRupiah } from "@/lib/format";
 const homeQueryOptions = queryOptions({
   queryKey: ["home"],
   queryFn: async () => {
-    const [umkm, products, umkmProducts, events, articles, categories, heroSlidesResult, searchIconResult] = await Promise.all([
+    const [umkm, products, umkmProducts, productCountRows, events, articles, categories, heroSlidesResult, searchIconResult] = await Promise.all([
       supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(name)").eq("is_published", true).order("rating", { ascending: false }).limit(8),
       supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
       supabase.from("products").select("umkm_id, image_url").eq("is_published", true).not("image_url", "is", null).order("created_at", { ascending: false }).limit(100),
+      // Counted separately (no limit, no filter on image) so the card badge
+      // reflects the real published-product count, not just the 100 most
+      // recent rows fetched for the banner slideshow.
+      supabase.from("products").select("umkm_id").eq("is_published", true),
       supabase.from("events").select("id, slug, title, cover_url, event_type, location, city, start_at").order("start_at", { ascending: true }).limit(3),
       supabase.from("articles").select("id, slug, title, excerpt, cover_url, category, published_at").order("published_at", { ascending: false }).limit(3),
       supabase.from("categories").select("id, name, slug, icon").order("name"),
@@ -51,6 +55,13 @@ const homeQueryOptions = queryOptions({
       }
     }
 
+    // Build map: umkm_id → published product count
+    const productCountsMap = new Map<string, number>();
+    for (const row of productCountRows.data ?? []) {
+      if (!row.umkm_id) continue;
+      productCountsMap.set(row.umkm_id, (productCountsMap.get(row.umkm_id) ?? 0) + 1);
+    }
+
     const heroSlides = (heroSlidesResult?.data ?? []) as any[];
     const searchIconUrl = (searchIconResult?.data as { url?: string } | null)?.url ?? null;
 
@@ -58,6 +69,7 @@ const homeQueryOptions = queryOptions({
       umkm: umkm.data ?? [],
       products: products.data ?? [],
       productImagesMap,
+      productCountsMap,
       events: events.data ?? [],
       articles: articles.data ?? [],
       categories: categories.data ?? [],
@@ -629,6 +641,7 @@ function PopularUmkm() {
                 key={u.id}
                 umkm={u}
                 productImages={data.productImagesMap.get(u.id) ?? []}
+                productCount={data.productCountsMap.get(u.id) ?? 0}
               />
             ))}
           </div>
@@ -693,7 +706,7 @@ function ProductSlideshow({ images, alt }: { images: string[]; alt: string }) {
   );
 }
 
-function UmkmCard({ umkm, productImages = [] }: { umkm: UmkmData; productImages?: string[] }) {
+function UmkmCard({ umkm, productImages = [], productCount = 0 }: { umkm: UmkmData; productImages?: string[]; productCount?: number }) {
   const [liked, setLiked] = useState(false);
   const initials = umkm.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 
@@ -790,7 +803,7 @@ function UmkmCard({ umkm, productImages = [] }: { umkm: UmkmData; productImages?
             <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-green-100 text-[#1a6b3c]">
               {(umkm.category as { name: string })?.name || "UMKM"}
             </span>
-            <span className="text-[10px] text-gray-400">0 Produk</span>
+            <span className="text-[10px] text-gray-400">{productCount} Produk</span>
           </div>
           <Link
             to="/umkm/$slug"
