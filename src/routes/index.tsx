@@ -968,7 +968,19 @@ function LatestProducts() {
             <div key={p.id} className="w-[200px] sm:w-[240px] md:w-[260px] lg:w-[285px] shrink-0 group">
               <div className="aspect-[4/5] w-full rounded-2xl bg-gray-100 overflow-hidden ring-1 ring-gray-100 mb-2.5">
                 {p.image_url ? (
-                  <img src={p.image_url} alt={p.name} loading="lazy" className="size-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  isVideoUrl(p.image_url) ? (
+                    <video
+                      src={p.image_url}
+                      muted
+                      loop
+                      playsInline
+                      autoPlay
+                      preload="metadata"
+                      className="size-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <img src={p.image_url} alt={p.name} loading="lazy" className="size-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  )
                 ) : (
                   <div className="size-full flex items-center justify-center text-gray-300 text-xs">Tanpa Foto</div>
                 )}

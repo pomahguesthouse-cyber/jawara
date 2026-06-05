@@ -486,7 +486,11 @@ function AdminDashboard() {
                       <td className="px-6 py-3.5">
                         <div className="size-11 rounded-lg bg-gray-100 overflow-hidden ring-1 ring-gray-100">
                           {p.image_url ? (
-                            <img src={p.image_url} alt="" className="size-full object-cover" />
+                            isVideoMedia(p.image_url) ? (
+                              <video src={p.image_url} muted playsInline preload="metadata" className="size-full object-cover" />
+                            ) : (
+                              <img src={p.image_url} alt="" className="size-full object-cover" />
+                            )
                           ) : (
                             <div className="size-full flex items-center justify-center text-gray-300 text-[10px]">No Pic</div>
                           )}
@@ -657,6 +661,12 @@ function AdminDashboard() {
       )}
     </div>
   );
+}
+
+function isVideoMedia(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(clean);
 }
 
 const INPUT_CLASS =
