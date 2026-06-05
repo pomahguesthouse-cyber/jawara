@@ -54,13 +54,20 @@ async function uploadToStorage(userId: string, file: File): Promise<string> {
   const ext = file.name.split(".").pop() || "jpg";
   const path = `${userId}/products/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
 
-  // Ensure bucket exists (ignore error if already exists)
-  try { await supabase.storage.createBucket(bucket, { public: true }); } catch (_) {}
-
-  const { data, error } = await supabase.storage.from(bucket).upload(path, file, { upsert: true });
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .upload(path, file, { upsert: true, contentType: file.type || undefined });
   if (error) throw error;
   const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(data.path);
   return publicUrl;
+}
+
+// True when a saved product media URL points to a video file. Mirrors the
+// helper used by the UMKM banner detection.
+function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(clean);
 }
 
 // ─── ProdukPage ───────────────────────────────────────────────────────────────
@@ -198,9 +205,14 @@ function ProductPhotoCarousel({ images, name }: { images: string[]; name: string
       </div>
     );
   }
+  const current = images[idx];
   return (
     <div className="relative aspect-[4/3] bg-muted overflow-hidden group">
-      <img src={images[idx]} alt={name} className="size-full object-cover" />
+      {isVideoUrl(current) ? (
+        <video src={current} muted loop playsInline autoPlay className="size-full object-cover" />
+      ) : (
+        <img src={current} alt={name} className="size-full object-cover" />
+      )}
       {images.length > 1 && (
         <>
           <button
@@ -258,17 +270,37 @@ function ProductForm({
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Handle file selection (from input or drop)
+  // Handle file selection (from input or drop). Accepts images AND videos;
+  // videos get a hard cap of 30 MB and skip compression.
   const addFiles = useCallback((files: FileList | File[]) => {
-    const arr = Array.from(files).filter((f) => f.type.startsWith("image/")).slice(0, 10);
+    const arr = Array.from(files)
+      .filter((f) => {
+        if (f.type.startsWith("image/")) return true;
+        if (f.type.startsWith("video/")) {
+          if (f.size > 30 * 1024 * 1024) {
+            toast.error(`Video "${f.name}" lebih dari 30 MB, dilewati`);
+            return false;
+          }
+          return true;
+        }
+        return false;
+      })
+      .slice(0, 10);
     if (!arr.length) return;
     setPendingFiles((prev) => [...prev, ...arr]);
     arr.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPendingPreviews((prev) => [...prev, e.target!.result as string]);
-      };
-      reader.readAsDataURL(file);
+      // For previews we use an object URL for video (cheap) and a base64
+      // data URL for image (so the existing markup stays the same).
+      if (file.type.startsWith("video/")) {
+        const url = URL.createObjectURL(file);
+        setPendingPreviews((prev) => [...prev, url]);
+      } else {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          setPendingPreviews((prev) => [...prev, e.target!.result as string]);
+        };
+        reader.readAsDataURL(file);
+      }
     });
   }, []);
 
@@ -298,22 +330,37 @@ function ProductForm({
     e.preventDefault();
     setSaving(true);
     try {
-      // Upload pending files
+      // Upload pending files. Videos go through as-is; images are compressed
+      // first, then uploaded as JPEG.
       const uploadedUrls: string[] = [];
       for (let i = 0; i < pendingFiles.length; i++) {
-        setUploadProgress(`Mengupload foto ${i + 1} dari ${pendingFiles.length}...`);
+        const file = pendingFiles[i];
+        const isVideo = file.type.startsWith("video/");
+        setUploadProgress(
+          `Mengupload ${isVideo ? "video" : "foto"} ${i + 1} dari ${pendingFiles.length}...`,
+        );
         try {
-          const compressed = await compressImage(pendingFiles[i]);
-          const response = await fetch(compressed);
-          const blob = await response.blob();
-          const uploadFile = new File([blob], `product_${Date.now()}.jpg`, { type: "image/jpeg" });
-          const url = await uploadToStorage(userId, uploadFile);
-          uploadedUrls.push(url);
+          if (isVideo) {
+            const url = await uploadToStorage(userId, file);
+            uploadedUrls.push(url);
+          } else {
+            const compressed = await compressImage(file);
+            const response = await fetch(compressed);
+            const blob = await response.blob();
+            const uploadFile = new File([blob], `product_${Date.now()}.jpg`, { type: "image/jpeg" });
+            const url = await uploadToStorage(userId, uploadFile);
+            uploadedUrls.push(url);
+          }
         } catch (uploadErr) {
           console.warn("Upload failed for file", i, uploadErr);
-          // Fallback: use compressed base64
-          const compressed = await compressImage(pendingFiles[i], 800, 800, 0.75);
-          uploadedUrls.push(compressed);
+          if (isVideo) {
+            toast.error(`Gagal upload video ${file.name}: ${(uploadErr as Error).message}`);
+            // Skip this file — videos can't fall back to base64.
+          } else {
+            // Fallback for images: store compressed base64 in the DB.
+            const compressed = await compressImage(file, 800, 800, 0.75);
+            uploadedUrls.push(compressed);
+          }
         }
       }
       setUploadProgress("");
@@ -388,14 +435,14 @@ function ProductForm({
                 <input
                   ref={inputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/*,video/*"
                   multiple
                   className="sr-only"
                   onChange={(e) => e.target.files && addFiles(e.target.files)}
                 />
                 <Upload className="size-8 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm font-semibold text-foreground">Klik atau seret foto ke sini</p>
-                <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP · Bisa pilih banyak foto sekaligus</p>
+                <p className="text-sm font-semibold text-foreground">Klik atau seret foto / video ke sini</p>
+                <p className="text-xs text-muted-foreground mt-1">JPG, PNG, WEBP, MP4, WebM · Maks 30 MB per video</p>
               </div>
 
               {/* Preview grid */}
@@ -404,7 +451,11 @@ function ProductForm({
                   {/* Already saved photos */}
                   {savedImages.map((url, i) => (
                     <div key={`saved-${i}`} className="relative group aspect-square rounded-xl overflow-hidden ring-2 ring-border">
-                      <img src={url} alt="" className="size-full object-cover" />
+                      {isVideoUrl(url) ? (
+                        <video src={url} muted loop playsInline preload="metadata" className="size-full object-cover" />
+                      ) : (
+                        <img src={url} alt="" className="size-full object-cover" />
+                      )}
                       {i === 0 && (
                         <div className="absolute top-1 left-1 bg-primary text-primary-foreground rounded-full p-0.5">
                           <Star className="size-2.5" />
@@ -429,9 +480,16 @@ function ProductForm({
                   ))}
 
                   {/* Pending (not yet uploaded) */}
-                  {pendingPreviews.map((src, i) => (
+                  {pendingPreviews.map((src, i) => {
+                    const file = pendingFiles[i];
+                    const isVideo = file?.type.startsWith("video/");
+                    return (
                     <div key={`pending-${i}`} className="relative group aspect-square rounded-xl overflow-hidden ring-2 ring-primary/40">
-                      <img src={src} alt="" className="size-full object-cover" />
+                      {isVideo ? (
+                        <video src={src} muted loop playsInline className="size-full object-cover" />
+                      ) : (
+                        <img src={src} alt="" className="size-full object-cover" />
+                      )}
                       <div className="absolute top-1 right-1 bg-primary/80 text-primary-foreground rounded-full p-0.5">
                         <Upload className="size-2.5" />
                       </div>
@@ -443,7 +501,8 @@ function ProductForm({
                         ><X className="size-3" /></button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
 
                   {/* Add more button */}
                   <button
