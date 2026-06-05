@@ -8,6 +8,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { PublicShell } from "@/components/PublicShell";
 import { formatRupiah } from "@/lib/format";
+import { PromoBadge } from "@/components/cards/PromoBadge";
 
 // ─── Query ───────────────────────────────────────────────────────────────────
 const homeQueryOptions = queryOptions({
@@ -15,7 +16,7 @@ const homeQueryOptions = queryOptions({
   queryFn: async () => {
     const [umkm, products, umkmProducts, productCountRows, events, articles, categories, heroSlidesResult, searchIconResult] = await Promise.all([
       supabase.from("umkm_profiles").select("id, slug, name, city, logo_url, banner_url, rating, is_verified, category:categories(name)").eq("is_published", true).order("rating", { ascending: false }).limit(8),
-      supabase.from("products").select("id, name, price, image_url, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
+      supabase.from("products").select("id, name, price, image_url, promo_type, promo_text, umkm:umkm_profiles!inner(name, slug)").eq("is_published", true).order("created_at", { ascending: false }).limit(8),
       // Fetch product images grouped by umkm_id for banner fallback
       supabase.from("products").select("umkm_id, image_url").eq("is_published", true).not("image_url", "is", null).order("created_at", { ascending: false }).limit(100),
       // Counted separately (no limit, no filter on image) so the card badge
@@ -966,7 +967,12 @@ function LatestProducts() {
         >
           {data.products.slice(0, 8).map((p) => (
             <div key={p.id} className="w-[200px] sm:w-[240px] md:w-[260px] lg:w-[285px] shrink-0 group">
-              <div className="aspect-[4/5] w-full rounded-2xl bg-gray-100 overflow-hidden ring-1 ring-gray-100 mb-2.5">
+              <div className="relative aspect-[4/5] w-full rounded-2xl bg-gray-100 overflow-hidden ring-1 ring-gray-100 mb-2.5">
+                {(p as any).promo_type && (
+                  <div className="absolute top-2.5 left-2.5 z-10">
+                    <PromoBadge type={(p as any).promo_type} text={(p as any).promo_text} />
+                  </div>
+                )}
                 {p.image_url ? (
                   isVideoUrl(p.image_url) ? (
                     <video

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { formatRupiah } from "@/lib/format";
+import { PromoBadge, type PromoType } from "./PromoBadge";
 
 function isVideoUrl(url: string | null | undefined): boolean {
   if (!url) return false;
@@ -14,12 +15,19 @@ export interface ProductCardData {
   image_url: string | null;
   umkm?: { name: string; slug: string } | null;
   category_name?: string | null;
+  promo_type?: PromoType;
+  promo_text?: string | null;
 }
 
 export function ProductCard({ product }: { product: ProductCardData }) {
   return (
     <div className="group">
-      <div className="aspect-[4/5] w-full rounded-2xl bg-muted overflow-hidden ring-1 ring-border mb-3">
+      <div className="relative aspect-[4/5] w-full rounded-2xl bg-muted overflow-hidden ring-1 ring-border mb-3">
+        {product.promo_type && (
+          <div className="absolute top-2.5 left-2.5 z-10">
+            <PromoBadge type={product.promo_type} text={product.promo_text} />
+          </div>
+        )}
         {product.image_url ? (
           isVideoUrl(product.image_url) ? (
             <video
