@@ -17,6 +17,7 @@ interface UmkmForm {
   city: string;
   district: string;
   address: string;
+  google_maps_url: string;
   whatsapp: string;
   email: string;
   website: string;
@@ -40,7 +41,7 @@ export function isVideoUrl(url: string | null | undefined): boolean {
 
 const empty: UmkmForm = {
   name: "", slug: "", description: "", city: "Semarang", district: "",
-  address: "", whatsapp: "", email: "", website: "", instagram: "",
+  address: "", google_maps_url: "", whatsapp: "", email: "", website: "", instagram: "",
   facebook: "", tiktok: "", logo_url: "", banner_url: "", category_id: "",
 };
 
@@ -216,6 +217,7 @@ function ProfilPage() {
         city: existing.city ?? "Semarang",
         district: existing.district ?? "",
         address: existing.address ?? "",
+        google_maps_url: existing.google_maps_url ?? "",
         whatsapp: existing.whatsapp ?? "",
         email: existing.email ?? "",
         website: existing.website ?? "",
@@ -280,6 +282,7 @@ function ProfilPage() {
         city: form.city || 'Semarang',
         district: form.district || null,
         address: form.address || null,
+        google_maps_url: form.google_maps_url || null,
         whatsapp: form.whatsapp || null,
         email: form.email || null,
         website: form.website || null,
@@ -455,6 +458,14 @@ function ProfilPage() {
             </Field>
             <Field label="Alamat Lengkap" full>
               <input value={form.address} onChange={(e) => update("address", e.target.value)} className={inputCls} />
+            </Field>
+            <Field label="Link Google Maps" hint="Tempel link dari Google Maps (Share → Salin link) atau maps.app.goo.gl/..." full>
+              <input
+                value={form.google_maps_url}
+                onChange={(e) => update("google_maps_url", e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+                className={inputCls}
+              />
             </Field>
             <Field label="WhatsApp" hint="dengan kode negara, contoh 6281234...">
               <input value={form.whatsapp} onChange={(e) => update("whatsapp", e.target.value)} className={inputCls} />

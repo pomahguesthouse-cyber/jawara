@@ -60,7 +60,7 @@ function AdminDashboard() {
         .from("umkm_profiles")
         .select(`
           id, name, slug, city, is_verified, is_published, rating, created_at,
-          owner_id, description, district, address, whatsapp, email, website,
+          owner_id, description, district, address, google_maps_url, whatsapp, email, website,
           instagram, facebook, tiktok, logo_url, banner_url, category_id,
           category:categories(name)
         `)
@@ -682,6 +682,7 @@ function EditUmkmModal({
     city: umkm.city ?? "",
     district: umkm.district ?? "",
     address: umkm.address ?? "",
+    google_maps_url: umkm.google_maps_url ?? "",
     category_id: umkm.category_id ?? "",
     description: umkm.description ?? "",
     whatsapp: umkm.whatsapp ?? "",
@@ -812,6 +813,14 @@ function EditUmkmModal({
                 onChange={(e) => update("address", e.target.value)}
                 rows={2}
                 className={`${INPUT_CLASS} resize-none`}
+              />
+            </Field>
+            <Field label="Link Google Maps">
+              <input
+                value={form.google_maps_url}
+                onChange={(e) => update("google_maps_url", e.target.value)}
+                placeholder="https://maps.app.goo.gl/..."
+                className={INPUT_CLASS}
               />
             </Field>
           </section>
