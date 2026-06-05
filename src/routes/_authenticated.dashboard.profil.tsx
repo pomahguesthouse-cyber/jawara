@@ -145,12 +145,9 @@ function ProfilPage() {
         finalUrl = compressedBase64; // fallback if storage upload fails
       }
 
-      try {
-        await supabase.storage.createBucket(bucketName, { public: true });
-      } catch (e) {
-        // ignore bucket creation errors
-      }
-
+      // Bucket itself is provisioned via migration 20260605020000; we no
+      // longer try to createBucket() from the client (RLS denies it for
+      // non-service-role users anyway).
       try {
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from(bucketName)

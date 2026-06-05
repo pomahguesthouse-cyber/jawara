@@ -60,7 +60,7 @@ function DetailUmkm() {
   return (
     <PublicShell>
       {/* Banner */}
-      <div className="h-48 sm:h-64 bg-gradient-to-br from-primary-soft to-primary/20 relative">
+      <div className="h-64 sm:h-80 lg:h-[28rem] bg-gradient-to-br from-primary-soft to-primary/20 relative">
         {umkm.banner_url && (
           isVideoBanner(umkm.banner_url) ? (
             <video
