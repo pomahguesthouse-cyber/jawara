@@ -61,7 +61,7 @@ function AdminDashboard() {
         .select(`
           id, name, slug, city, is_verified, is_published, rating, created_at,
           owner_id, description, district, address, whatsapp, email, website,
-          instagram, facebook, logo_url, banner_url, category_id,
+          instagram, facebook, tiktok, logo_url, banner_url, category_id,
           category:categories(name)
         `)
         .order("created_at", { ascending: false });
@@ -689,6 +689,7 @@ function EditUmkmModal({
     website: umkm.website ?? "",
     instagram: umkm.instagram ?? "",
     facebook: umkm.facebook ?? "",
+    tiktok: umkm.tiktok ?? "",
     logo_url: umkm.logo_url ?? "",
     banner_url: umkm.banner_url ?? "",
     rating: umkm.rating ?? 5.0,
@@ -855,6 +856,14 @@ function EditUmkmModal({
                 <input
                   value={form.facebook}
                   onChange={(e) => update("facebook", e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field label="TikTok">
+                <input
+                  value={form.tiktok}
+                  onChange={(e) => update("tiktok", e.target.value)}
+                  placeholder="@username"
                   className={INPUT_CLASS}
                 />
               </Field>

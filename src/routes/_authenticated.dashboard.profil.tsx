@@ -22,6 +22,7 @@ interface UmkmForm {
   website: string;
   instagram: string;
   facebook: string;
+  tiktok: string;
   logo_url: string;
   banner_url: string;
   category_id: string;
@@ -30,7 +31,7 @@ interface UmkmForm {
 const empty: UmkmForm = {
   name: "", slug: "", description: "", city: "Semarang", district: "",
   address: "", whatsapp: "", email: "", website: "", instagram: "",
-  facebook: "", logo_url: "", banner_url: "", category_id: "",
+  facebook: "", tiktok: "", logo_url: "", banner_url: "", category_id: "",
 };
 
 function ProfilPage() {
@@ -188,6 +189,7 @@ function ProfilPage() {
         website: existing.website ?? "",
         instagram: existing.instagram ?? "",
         facebook: existing.facebook ?? "",
+        tiktok: existing.tiktok ?? "",
         logo_url: existing.logo_url ?? "",
         banner_url: existing.banner_url ?? "",
         category_id: existing.category_id ?? "",
@@ -251,6 +253,7 @@ function ProfilPage() {
         website: form.website || null,
         instagram: form.instagram || null,
         facebook: form.facebook || null,
+        tiktok: form.tiktok || null,
         logo_url: form.logo_url || null,
         banner_url: form.banner_url || null,
         category_id: finalCategoryId,
@@ -421,6 +424,9 @@ function ProfilPage() {
             </Field>
             <Field label="Instagram">
               <input value={form.instagram} onChange={(e) => update("instagram", e.target.value)} className={inputCls} placeholder="@namaakun" />
+            </Field>
+            <Field label="TikTok">
+              <input value={form.tiktok} onChange={(e) => update("tiktok", e.target.value)} className={inputCls} placeholder="@namaakun" />
             </Field>
             <Field label="Facebook URL" full>
               <input value={form.facebook} onChange={(e) => update("facebook", e.target.value)} className={inputCls} />
