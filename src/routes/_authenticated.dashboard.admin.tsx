@@ -6,7 +6,8 @@ import { toast } from "sonner";
 import { formatRupiah } from "@/lib/format";
 import {
   Shield, Users, Store, Package, Layers, CheckCircle2, XCircle,
-  Trash2, Plus, Star, MapPin, ChevronRight, PlusCircle, AlertCircle, Loader2
+  Trash2, Plus, Star, MapPin, ChevronRight, PlusCircle, AlertCircle, Loader2,
+  Pencil, X
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/dashboard/admin")({
@@ -64,7 +65,8 @@ function AdminDashboard() {
         .from("umkm_profiles")
         .select(`
           id, name, slug, city, is_verified, is_published, rating, created_at,
-          owner_id,
+          owner_id, description, district, address, whatsapp, email, website,
+          instagram, facebook, logo_url, banner_url, category_id,
           category:categories(name)
         `)
         .order("created_at", { ascending: false });
@@ -73,6 +75,9 @@ function AdminDashboard() {
       return data ?? [];
     },
   });
+
+  // Edit modal state — null when closed, holds the row being edited otherwise.
+  const [editingUmkm, setEditingUmkm] = useState<any | null>(null);
 
   const { data: productsList = [], isLoading: productsLoading } = useQuery({
     queryKey: ["admin-products"],
@@ -134,6 +139,37 @@ function AdminDashboard() {
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
     onError: (e) => toast.error(e.message),
+  });
+
+  const editUmkm = useMutation({
+    mutationFn: async (payload: { id: string } & Record<string, any>) => {
+      const { id, ...patch } = payload;
+      // Normalize empty strings to null so they don't shadow defaults / NOT NULL
+      // columns silently.
+      const cleaned: Record<string, any> = {};
+      for (const [k, v] of Object.entries(patch)) {
+        cleaned[k] = typeof v === "string" && v.trim() === "" ? null : v;
+      }
+      const { data, error } = await supabase
+        .from("umkm_profiles")
+        .update(cleaned)
+        .eq("id", id)
+        .select("id");
+      if (error) throw error;
+      if (!data || data.length === 0) {
+        throw new Error(
+          "Tidak ada baris yang diperbarui. Periksa apakah akun Anda memiliki role super_admin (kemungkinan tertolak RLS)."
+        );
+      }
+    },
+    onSuccess: () => {
+      toast.success("UMKM berhasil diperbarui");
+      setEditingUmkm(null);
+      qc.invalidateQueries({ queryKey: ["admin-umkm"] });
+      qc.invalidateQueries({ queryKey: ["admin-products"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Gagal memperbarui UMKM"),
   });
 
   const deleteUmkm = useMutation({
@@ -400,8 +436,17 @@ function AdminDashboard() {
                         </button>
 
                         <button
+                          onClick={() => setEditingUmkm(u)}
+                          className="inline-flex items-center justify-center p-2 rounded-lg border border-indigo-100 text-indigo-600 bg-indigo-50 hover:bg-indigo-100/50 transition cursor-pointer"
+                          title="Edit UMKM"
+                        >
+                          <Pencil className="size-4" />
+                        </button>
+
+                        <button
                           onClick={() => confirm(`Hapus UMKM "${u.name}" beserta seluruh produknya? Tindakan ini permanen.`) && deleteUmkm.mutate(u.id)}
                           className="inline-flex items-center justify-center p-2 rounded-lg border border-red-100 text-red-500 bg-red-50 hover:bg-red-100/50 transition cursor-pointer"
+                          title="Hapus UMKM"
                         >
                           <Trash2 className="size-4" />
                         </button>
@@ -604,6 +649,278 @@ function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* ─── Edit UMKM Modal ────────────────────────────────────────────────── */}
+      {editingUmkm && (
+        <EditUmkmModal
+          umkm={editingUmkm}
+          categories={categoriesList}
+          onClose={() => setEditingUmkm(null)}
+          onSave={(patch) => editUmkm.mutate({ id: editingUmkm.id, ...patch })}
+          isSaving={editUmkm.isPending}
+        />
+      )}
     </div>
+  );
+}
+
+const INPUT_CLASS =
+  "w-full h-10 px-3 text-sm bg-white border border-gray-200 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1a6b3c]/30 focus:border-[#1a6b3c]";
+
+// ─── Edit UMKM Modal Component ────────────────────────────────────────────────
+function EditUmkmModal({
+  umkm,
+  categories,
+  onClose,
+  onSave,
+  isSaving,
+}: {
+  umkm: any;
+  categories: any[];
+  onClose: () => void;
+  onSave: (patch: Record<string, any>) => void;
+  isSaving: boolean;
+}) {
+  const [form, setForm] = useState({
+    name: umkm.name ?? "",
+    slug: umkm.slug ?? "",
+    city: umkm.city ?? "",
+    district: umkm.district ?? "",
+    address: umkm.address ?? "",
+    category_id: umkm.category_id ?? "",
+    description: umkm.description ?? "",
+    whatsapp: umkm.whatsapp ?? "",
+    email: umkm.email ?? "",
+    website: umkm.website ?? "",
+    instagram: umkm.instagram ?? "",
+    facebook: umkm.facebook ?? "",
+    logo_url: umkm.logo_url ?? "",
+    banner_url: umkm.banner_url ?? "",
+    rating: umkm.rating ?? 5.0,
+  });
+
+  const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
+    setForm((prev) => ({ ...prev, [k]: v }));
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      ...form,
+      category_id: form.category_id || null,
+      rating: Number(form.rating) || null,
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
+      <form
+        onSubmit={submit}
+        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl my-8 overflow-hidden"
+      >
+        <header className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+          <div>
+            <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+              <Pencil className="size-4 text-indigo-600" />
+              Edit UMKM
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5 truncate max-w-md">{umkm.name}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+            aria-label="Tutup"
+          >
+            <X className="size-4" />
+          </button>
+        </header>
+
+        <div className="p-5 space-y-5">
+          {/* Info dasar */}
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Info Dasar</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Nama UMKM">
+                <input
+                  value={form.name}
+                  onChange={(e) => update("name", e.target.value)}
+                  required
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field label="Slug (URL)">
+                <input
+                  value={form.slug}
+                  onChange={(e) => update("slug", e.target.value)}
+                  required
+                  className={`${INPUT_CLASS} font-mono text-xs`}
+                />
+              </Field>
+              <Field label="Kategori">
+                <select
+                  value={form.category_id ?? ""}
+                  onChange={(e) => update("category_id", e.target.value)}
+                  className={INPUT_CLASS}
+                >
+                  <option value="">— Tanpa kategori —</option>
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Rating (0–5)">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="5"
+                  value={form.rating}
+                  onChange={(e) => update("rating", e.target.value as any)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            </div>
+            <Field label="Deskripsi">
+              <textarea
+                value={form.description}
+                onChange={(e) => update("description", e.target.value)}
+                rows={3}
+                className={`${INPUT_CLASS} resize-none`}
+              />
+            </Field>
+          </section>
+
+          {/* Lokasi */}
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Lokasi</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Kota">
+                <input
+                  value={form.city}
+                  onChange={(e) => update("city", e.target.value)}
+                  required
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field label="Kecamatan / Distrik">
+                <input
+                  value={form.district}
+                  onChange={(e) => update("district", e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            </div>
+            <Field label="Alamat Lengkap">
+              <textarea
+                value={form.address}
+                onChange={(e) => update("address", e.target.value)}
+                rows={2}
+                className={`${INPUT_CLASS} resize-none`}
+              />
+            </Field>
+          </section>
+
+          {/* Kontak & Media Sosial */}
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Kontak</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="WhatsApp">
+                <input
+                  value={form.whatsapp}
+                  onChange={(e) => update("whatsapp", e.target.value)}
+                  placeholder="628xxx"
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field label="Email">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field label="Website">
+                <input
+                  value={form.website}
+                  onChange={(e) => update("website", e.target.value)}
+                  placeholder="https://"
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field label="Instagram">
+                <input
+                  value={form.instagram}
+                  onChange={(e) => update("instagram", e.target.value)}
+                  placeholder="@username"
+                  className={INPUT_CLASS}
+                />
+              </Field>
+              <Field label="Facebook">
+                <input
+                  value={form.facebook}
+                  onChange={(e) => update("facebook", e.target.value)}
+                  className={INPUT_CLASS}
+                />
+              </Field>
+            </div>
+          </section>
+
+          {/* Media */}
+          <section className="space-y-3">
+            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Media</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Field label="Logo URL">
+                <input
+                  value={form.logo_url}
+                  onChange={(e) => update("logo_url", e.target.value)}
+                  className={`${INPUT_CLASS} text-xs`}
+                />
+                {form.logo_url && (
+                  <img src={form.logo_url} alt="" className="mt-2 size-16 rounded-xl object-cover border border-gray-200" />
+                )}
+              </Field>
+              <Field label="Banner URL">
+                <input
+                  value={form.banner_url}
+                  onChange={(e) => update("banner_url", e.target.value)}
+                  className={`${INPUT_CLASS} text-xs`}
+                />
+                {form.banner_url && (
+                  <img src={form.banner_url} alt="" className="mt-2 h-16 w-full rounded-xl object-cover border border-gray-200" />
+                )}
+              </Field>
+            </div>
+          </section>
+        </div>
+
+        <footer className="flex items-center justify-end gap-2 p-4 border-t border-gray-100 bg-gray-50 sticky bottom-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-bold text-gray-600 rounded-xl hover:bg-gray-100"
+          >
+            Batal
+          </button>
+          <button
+            type="submit"
+            disabled={isSaving}
+            className="px-5 py-2 text-sm font-bold text-white bg-[#1a6b3c] hover:bg-[#155c33] disabled:opacity-60 rounded-xl flex items-center gap-1.5"
+          >
+            {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+            Simpan Perubahan
+          </button>
+        </footer>
+      </form>
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="text-[11px] font-bold text-gray-600 uppercase tracking-wider block mb-1">{label}</span>
+      {children}
+    </label>
   );
 }
