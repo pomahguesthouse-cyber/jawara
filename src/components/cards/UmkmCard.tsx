@@ -2,6 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { MapPin, Star, BadgeCheck, Heart, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
+// Detect video banners by extension so we can render <video> instead of <img>.
+function isVideoUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  const clean = url.split("?")[0].toLowerCase();
+  return /\.(mp4|webm|mov|m4v|ogv)$/.test(clean);
+}
+
 export interface UmkmCardData {
   id: string;
   slug: string;
@@ -25,11 +32,23 @@ export function UmkmCard({ umkm }: { umkm: UmkmCardData }) {
       {/* ── Image Banner ── */}
       <div className="relative h-44 bg-gray-100 overflow-hidden">
         {umkm.banner_url ? (
-          <img
-            src={umkm.banner_url}
-            alt={`Banner ${umkm.name}`}
-            className="size-full object-cover"
-          />
+          isVideoUrl(umkm.banner_url) ? (
+            <video
+              src={umkm.banner_url}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="metadata"
+              className="size-full object-cover"
+            />
+          ) : (
+            <img
+              src={umkm.banner_url}
+              alt={`Banner ${umkm.name}`}
+              className="size-full object-cover"
+            />
+          )
         ) : umkm.logo_url ? (
           <>
             <img src={umkm.logo_url} alt="" className="absolute inset-0 size-full object-cover scale-110 blur-lg opacity-50" />
