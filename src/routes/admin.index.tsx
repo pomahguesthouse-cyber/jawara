@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,14 +10,9 @@ import {
   Pencil, X
 } from "lucide-react";
 
-export const Route = createFileRoute("/_authenticated/dashboard/admin")({
-  beforeLoad: ({ context }) => {
-    // If the user does not have super_admin role, redirect back to overview
-    if (!context.isSuperAdmin) {
-      toast.error("Akses ditolak: Hanya administrator yang diizinkan.");
-      throw redirect({ to: "/dashboard" });
-    }
-  },
+export const Route = createFileRoute("/admin/")({
+  // Auth + role check lives in the parent /admin route; this file just
+  // owns the dashboard content.
   component: AdminDashboard,
 });
 

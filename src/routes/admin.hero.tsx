@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,14 +31,9 @@ import {
 } from "lucide-react";
 
 // ─── Route Definition ────────────────────────────────────────────────────────
-export const Route = createFileRoute("/_authenticated/dashboard/admin_/hero")({
+export const Route = createFileRoute("/admin/hero")({
   ssr: false,
-  beforeLoad: ({ context }) => {
-    if (!context.isSuperAdmin) {
-      toast.error("Akses ditolak: Hanya administrator yang diizinkan.");
-      throw redirect({ to: "/dashboard" });
-    }
-  },
+  // Auth + role check is enforced by the parent /admin layout route.
   component: AdminHeroSliderPage,
 });
 
