@@ -4,6 +4,8 @@ import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatRupiah } from "@/lib/format";
 import { toast } from "sonner";
+import { PromoBadge } from "@/components/cards/PromoBadge";
+import { PromoPrice } from "@/components/cards/PromoPrice";
 import {
   Plus, Trash2, Pencil, X, Upload, ImagePlus, ChevronLeft, ChevronRight, Loader2, Star,
 } from "lucide-react";
@@ -22,6 +24,10 @@ interface ProductRow {
   description: string | null;
   category_id: string | null;
   is_published: boolean;
+  promo_type: "promo" | "diskon" | "lainnya" | null;
+  promo_text: string | null;
+  promo_expires_at: string | null;
+  original_price: number | null;
 }
 
 // ─── Helper: compress image to JPEG data-url ──────────────────────────────────
@@ -151,10 +157,24 @@ function ProdukPage() {
             return (
               <div key={p.id} className="bg-card ring-1 ring-border rounded-2xl overflow-hidden">
                 {/* Photo carousel preview */}
-                <ProductPhotoCarousel images={allImages} name={p.name} />
+                <div className="relative">
+                  <ProductPhotoCarousel images={allImages} name={p.name} />
+                  {p.promo_type && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <PromoBadge type={p.promo_type} text={p.promo_text} expiresAt={p.promo_expires_at} />
+                    </div>
+                  )}
+                </div>
                 <div className="p-3 sm:p-4">
                   <h3 className="font-bold text-sm line-clamp-1">{p.name}</h3>
-                  <p className="text-primary font-bold text-xs mt-0.5">{formatRupiah(p.price)}</p>
+                  <PromoPrice
+                    price={p.price}
+                    originalPrice={p.original_price}
+                    expiresAt={p.promo_expires_at}
+                    className="mt-0.5"
+                    priceClass="text-primary font-bold text-xs"
+                    originalClass="text-[10px] text-muted-foreground line-through"
+                  />
                   <p className="text-xs text-muted-foreground mt-0.5">Stok: {p.stock} · {allImages.length} foto</p>
                   <div className="mt-3 flex gap-2">
                     <button
@@ -253,6 +273,18 @@ function ProductForm({
   const [name, setName]   = useState(initial?.name ?? "");
   const [price, setPrice] = useState(initial?.price?.toString() ?? "");
   const [stock, setStock] = useState(initial?.stock?.toString() ?? "0");
+  const [promoType, setPromoType] = useState<"" | "promo" | "diskon" | "lainnya">(
+    (initial?.promo_type as any) ?? "",
+  );
+  const [promoText, setPromoText] = useState(initial?.promo_text ?? "");
+  // ISO date input expects yyyy-mm-dd; we store full timestamptz in DB but
+  // expose only the date portion in the form to keep the UX simple.
+  const [promoExpires, setPromoExpires] = useState(
+    initial?.promo_expires_at ? initial.promo_expires_at.slice(0, 10) : "",
+  );
+  const [originalPrice, setOriginalPrice] = useState(
+    initial?.original_price != null ? String(initial.original_price) : "",
+  );
   const [desc, setDesc]   = useState(initial?.description ?? "");
   const [catId, setCatId] = useState(initial?.category_id ?? "");
 
@@ -377,6 +409,16 @@ function ProductForm({
         images: allImages,
         description: desc || null,
         category_id: catId || null,
+        promo_type: promoType || null,
+        promo_text: promoType && promoText.trim() ? promoText.trim() : null,
+        // Store as end-of-day on the chosen date so the badge stays visible
+        // through the date the user picked.
+        promo_expires_at:
+          promoType && promoExpires
+            ? new Date(`${promoExpires}T23:59:59`).toISOString()
+            : null,
+        original_price:
+          promoType && originalPrice.trim() ? parseFloat(originalPrice) || null : null,
       };
 
       const { error } = initial
@@ -549,6 +591,92 @@ function ProductForm({
             <Field label="Deskripsi">
               <textarea rows={3} value={desc} onChange={(e) => setDesc(e.target.value)} className={`${inp} h-auto py-2.5`} placeholder="Jelaskan keunggulan produk Anda..." />
             </Field>
+
+            {/* ── Promo / Diskon ── */}
+            <div>
+              <label className="text-xs font-semibold block mb-2">
+                Penanda Promo
+                <span className="ml-1.5 text-muted-foreground font-normal">(opsional — tampil sebagai badge di kartu produk)</span>
+              </label>
+              <div className="grid grid-cols-4 gap-2">
+                {([
+                  { v: "", label: "Tidak ada" },
+                  { v: "promo", label: "Promo" },
+                  { v: "diskon", label: "Diskon" },
+                  { v: "lainnya", label: "Lainnya" },
+                ] as const).map((opt) => (
+                  <button
+                    key={opt.v || "none"}
+                    type="button"
+                    onClick={() => setPromoType(opt.v as any)}
+                    className={`py-2 rounded-xl text-xs font-bold border transition ${
+                      promoType === opt.v
+                        ? "border-primary bg-primary-soft text-primary"
+                        : "border-border text-muted-foreground hover:bg-muted"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {promoType && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Label badge</label>
+                    <input
+                      value={promoText}
+                      onChange={(e) => setPromoText(e.target.value)}
+                      placeholder={
+                        promoType === "lainnya"
+                          ? "Contoh: Buy 1 Get 1, Bundling Hemat"
+                          : promoType === "diskon"
+                          ? "Contoh: Diskon 20%, Hemat 50K (opsional)"
+                          : "Contoh: Flash Sale, Promo Akhir Pekan (opsional)"
+                      }
+                      className={inp}
+                      required={promoType === "lainnya"}
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      {promoType === "lainnya"
+                        ? "Wajib diisi untuk tipe Lainnya."
+                        : "Kosongkan untuk pakai label default."}
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Berlaku sampai</label>
+                      <input
+                        type="date"
+                        value={promoExpires}
+                        onChange={(e) => setPromoExpires(e.target.value)}
+                        min={new Date().toISOString().slice(0, 10)}
+                        className={inp}
+                      />
+                      <p className="text-[10px] text-muted-foreground mt-1">
+                        Badge akan otomatis hilang setelah tanggal ini. Kosongkan kalau tanpa batas waktu.
+                      </p>
+                    </div>
+                    {promoType === "diskon" && (
+                      <div>
+                        <label className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block mb-1">Harga normal (sebelum diskon)</label>
+                        <input
+                          type="number"
+                          min={0}
+                          value={originalPrice}
+                          onChange={(e) => setOriginalPrice(e.target.value)}
+                          placeholder="0"
+                          className={inp}
+                        />
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Akan tampil dicoret di samping harga sekarang + label persen hemat.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </form>
         </div>
 

@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
-import { formatRupiah } from "@/lib/format";
+import { PromoBadge, type PromoType } from "./PromoBadge";
+import { PromoPrice } from "./PromoPrice";
 
 function isVideoUrl(url: string | null | undefined): boolean {
   if (!url) return false;
@@ -14,12 +15,25 @@ export interface ProductCardData {
   image_url: string | null;
   umkm?: { name: string; slug: string } | null;
   category_name?: string | null;
+  promo_type?: PromoType;
+  promo_text?: string | null;
+  promo_expires_at?: string | null;
+  original_price?: number | string | null;
 }
 
 export function ProductCard({ product }: { product: ProductCardData }) {
   return (
     <div className="group">
-      <div className="aspect-[4/5] w-full rounded-2xl bg-muted overflow-hidden ring-1 ring-border mb-3">
+      <div className="relative aspect-[4/5] w-full rounded-2xl bg-muted overflow-hidden ring-1 ring-border mb-3">
+        {product.promo_type && (
+          <div className="absolute top-2.5 left-2.5 z-10">
+            <PromoBadge
+              type={product.promo_type}
+              text={product.promo_text}
+              expiresAt={product.promo_expires_at}
+            />
+          </div>
+        )}
         {product.image_url ? (
           isVideoUrl(product.image_url) ? (
             <video
@@ -51,7 +65,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         </p>
       )}
       <h3 className="text-sm font-semibold line-clamp-2 mb-1">{product.name}</h3>
-      <p className="text-sm font-bold text-foreground">{formatRupiah(product.price)}</p>
+      <PromoPrice
+        price={product.price}
+        originalPrice={product.original_price}
+        expiresAt={product.promo_expires_at}
+      />
       {product.umkm && (
         <Link
           to="/umkm/$slug"

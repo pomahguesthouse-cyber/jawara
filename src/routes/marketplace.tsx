@@ -9,7 +9,7 @@ const marketQuery = queryOptions({
   queryFn: async () => {
     const { data } = await supabase
       .from("products")
-      .select("id, name, price, image_url, category:categories(name), umkm:umkm_profiles!inner(name, slug)")
+      .select("id, name, price, image_url, promo_type, promo_text, promo_expires_at, original_price, category:categories(name), umkm:umkm_profiles!inner(name, slug)")
       .eq("is_published", true)
       .order("created_at", { ascending: false })
       .limit(60);
@@ -54,6 +54,10 @@ export const Route = createFileRoute("/marketplace")({
                       image_url: p.image_url,
                       umkm: p.umkm,
                       category_name: p.category?.name ?? null,
+                      promo_type: (p as any).promo_type,
+                      promo_text: (p as any).promo_text,
+                      promo_expires_at: (p as any).promo_expires_at,
+                      original_price: (p as any).original_price,
                     }}
                   />
                 ))}

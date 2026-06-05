@@ -25,7 +25,7 @@ const umkmQuery = (slug: string) =>
       if (!umkm) throw notFound();
       const { data: products } = await supabase
         .from("products")
-        .select("id, name, price, image_url, category:categories(name)")
+        .select("id, name, price, image_url, promo_type, promo_text, promo_expires_at, original_price, category:categories(name)")
         .eq("umkm_id", umkm.id)
         .eq("is_published", true)
         .order("created_at", { ascending: false });
@@ -167,6 +167,10 @@ function DetailUmkm() {
                     price: p.price,
                     image_url: p.image_url,
                     category_name: p.category?.name ?? null,
+                    promo_type: (p as any).promo_type,
+                    promo_text: (p as any).promo_text,
+                    promo_expires_at: (p as any).promo_expires_at,
+                    original_price: (p as any).original_price,
                   }}
                 />
               ))}
