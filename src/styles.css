@@ -1,4 +1,8 @@
-@import "tailwindcss" source(none);
+/* Increase the size of the logo in the header */
+.logo {
+  width: 100px; /* Adjust the size as needed */
+  height: auto;
+}@import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
 
