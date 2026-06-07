@@ -25,7 +25,8 @@ const directoryQueryOptions = (p: Params) =>
       if (p.q) query = query.ilike("name", `%${p.q}%`);
       if (p.kota) query = query.eq("city", p.kota);
       const { data: umkm } = await query.order("rating", { ascending: false }).limit(48);
-      let filtered = (umkm ?? []) as (UmkmCardData & { category?: { slug: string } | null })[];
+      type Row = UmkmCardData & { category?: { slug: string; name: string } | null };
+      let filtered = (umkm ?? []) as Row[];
       if (p.kategori) filtered = filtered.filter((u) => u.category?.slug === p.kategori);
 
       // Fetch product count per UMKM (only published products) so the card
@@ -39,7 +40,11 @@ const directoryQueryOptions = (p: Params) =>
         if (!row.umkm_id) continue;
         productCounts.set(row.umkm_id, (productCounts.get(row.umkm_id) ?? 0) + 1);
       }
-      filtered = filtered.map((u) => ({ ...u, product_count: productCounts.get(u.id) ?? 0 }));
+      filtered = filtered.map((u) => ({
+        ...u,
+        product_count: productCounts.get(u.id) ?? 0,
+        category_name: u.category?.name ?? null,
+      }));
 
       const { data: categories } = await supabase.from("categories").select("id, name, slug").order("name");
       const cities = Array.from(new Set((umkm ?? []).map((u) => u.city))).sort();
