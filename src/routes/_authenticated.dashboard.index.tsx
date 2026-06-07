@@ -34,7 +34,7 @@ function Overview() {
     <div className="p-6 lg:p-10 max-w-6xl">
       <header className="mb-8">
         <p className="text-sm text-muted-foreground">Selamat datang kembali 👋</p>
-        <h1 className="text-3xl font-extrabold tracking-tight mt-1">Dashboard UMKM</h1>
+        <h1 className="text-3xl font-extrabold tracking-tight mt-1">Dashboard UMKM : Pomah Guesthouse</h1>
       </header>
 
       {!data?.umkm && (
