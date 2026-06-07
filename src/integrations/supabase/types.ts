@@ -122,6 +122,105 @@ export type Database = {
         }
         Relationships: []
       }
+      hero_media_library: {
+        Row: {
+          created_at: string
+          folder: string
+          id: string
+          mime_type: string | null
+          name: string
+          size_bytes: number | null
+          storage_path: string | null
+          uploaded_by: string | null
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          folder?: string
+          id?: string
+          mime_type?: string | null
+          name: string
+          size_bytes?: number | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+          url: string
+        }
+        Update: {
+          created_at?: string
+          folder?: string
+          id?: string
+          mime_type?: string | null
+          name?: string
+          size_bytes?: number | null
+          storage_path?: string | null
+          uploaded_by?: string | null
+          url?: string
+        }
+        Relationships: []
+      }
+      hero_slides: {
+        Row: {
+          btn_search: Json | null
+          btn_text: string | null
+          btn_to: string | null
+          created_at: string
+          device: string
+          end_date: string | null
+          id: string
+          image: string
+          internal_name: string | null
+          priority_score: number
+          settings: Json | null
+          sort_order: number
+          start_date: string | null
+          status: string
+          subtext: string
+          tags: string[] | null
+          title: string
+          type: string
+        }
+        Insert: {
+          btn_search?: Json | null
+          btn_text?: string | null
+          btn_to?: string | null
+          created_at?: string
+          device?: string
+          end_date?: string | null
+          id?: string
+          image: string
+          internal_name?: string | null
+          priority_score?: number
+          settings?: Json | null
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          subtext: string
+          tags?: string[] | null
+          title: string
+          type?: string
+        }
+        Update: {
+          btn_search?: Json | null
+          btn_text?: string | null
+          btn_to?: string | null
+          created_at?: string
+          device?: string
+          end_date?: string | null
+          id?: string
+          image?: string
+          internal_name?: string | null
+          priority_score?: number
+          settings?: Json | null
+          sort_order?: number
+          start_date?: string | null
+          status?: string
+          subtext?: string
+          tags?: string[] | null
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           category_id: string | null
@@ -129,9 +228,14 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          images: Json
           is_published: boolean
           name: string
+          original_price: number | null
           price: number
+          promo_expires_at: string | null
+          promo_text: string | null
+          promo_type: string | null
           stock: number
           umkm_id: string
           updated_at: string
@@ -142,9 +246,14 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: Json
           is_published?: boolean
           name: string
+          original_price?: number | null
           price?: number
+          promo_expires_at?: string | null
+          promo_text?: string | null
+          promo_type?: string | null
           stock?: number
           umkm_id: string
           updated_at?: string
@@ -155,9 +264,14 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          images?: Json
           is_published?: boolean
           name?: string
+          original_price?: number | null
           price?: number
+          promo_expires_at?: string | null
+          promo_text?: string | null
+          promo_type?: string | null
           stock?: number
           umkm_id?: string
           updated_at?: string
@@ -190,6 +304,7 @@ export type Database = {
           district: string | null
           email: string | null
           facebook: string | null
+          google_maps_url: string | null
           id: string
           instagram: string | null
           is_published: boolean
@@ -199,6 +314,7 @@ export type Database = {
           owner_id: string
           rating: number | null
           slug: string
+          tiktok: string | null
           updated_at: string
           website: string | null
           whatsapp: string | null
@@ -213,6 +329,7 @@ export type Database = {
           district?: string | null
           email?: string | null
           facebook?: string | null
+          google_maps_url?: string | null
           id?: string
           instagram?: string | null
           is_published?: boolean
@@ -222,6 +339,7 @@ export type Database = {
           owner_id: string
           rating?: number | null
           slug: string
+          tiktok?: string | null
           updated_at?: string
           website?: string | null
           whatsapp?: string | null
@@ -236,6 +354,7 @@ export type Database = {
           district?: string | null
           email?: string | null
           facebook?: string | null
+          google_maps_url?: string | null
           id?: string
           instagram?: string | null
           is_published?: boolean
@@ -245,6 +364,7 @@ export type Database = {
           owner_id?: string
           rating?: number | null
           slug?: string
+          tiktok?: string | null
           updated_at?: string
           website?: string | null
           whatsapp?: string | null

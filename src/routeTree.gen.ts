@@ -15,17 +15,17 @@ import { Route as EventRouteImport } from './routes/event'
 import { Route as DirektoriRouteImport } from './routes/direktori'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ArtikelRouteImport } from './routes/artikel'
-import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AdminLoginRouteImport } from './routes/admin_.login'
+import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as UmkmSlugRouteImport } from './routes/umkm.$slug'
+import { Route as AdminLoginRouteImport } from './routes/admin_.login'
+import { Route as AdminHeroRouteImport } from './routes/admin.hero'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated.dashboard'
 import { Route as AuthenticatedDashboardIndexRouteImport } from './routes/_authenticated.dashboard.index'
 import { Route as AuthenticatedDashboardProfilRouteImport } from './routes/_authenticated.dashboard.profil'
 import { Route as AuthenticatedDashboardProdukRouteImport } from './routes/_authenticated.dashboard.produk'
-import { Route as AdminIndexRouteImport } from './routes/admin.index'
-import { Route as AdminHeroRouteImport } from './routes/admin.hero'
 
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
@@ -57,18 +57,13 @@ const ArtikelRoute = ArtikelRouteImport.update({
   path: '/artikel',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRoute = AuthenticatedRouteImport.update({
-  id: '/_authenticated',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin_/login',
-  path: '/admin/login',
+const AuthenticatedRoute = AuthenticatedRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -76,10 +71,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
 const UmkmSlugRoute = UmkmSlugRouteImport.update({
   id: '/umkm/$slug',
   path: '/umkm/$slug',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin_/login',
+  path: '/admin/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminHeroRoute = AdminHeroRouteImport.update({
+  id: '/hero',
+  path: '/hero',
+  getParentRoute: () => AdminRoute,
 } as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
@@ -104,33 +114,23 @@ const AuthenticatedDashboardProdukRoute =
     path: '/produk',
     getParentRoute: () => AuthenticatedDashboardRoute,
   } as any)
-const AdminIndexRoute = AdminIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminHeroRoute = AdminHeroRouteImport.update({
-  id: '/hero',
-  path: '/hero',
-  getParentRoute: () => AdminRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/artikel': typeof ArtikelRoute
   '/auth': typeof AuthRoute
   '/direktori': typeof DirektoriRoute
   '/event': typeof EventRoute
   '/marketplace': typeof MarketplaceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
-  '/admin/login': typeof AdminLoginRoute
-  '/admin': typeof AdminRouteWithChildren
   '/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/hero': typeof AdminHeroRoute
+  '/admin/login': typeof AdminLoginRoute
   '/umkm/$slug': typeof UmkmSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
-  '/admin/hero': typeof AdminHeroRoute
-  '/admin/': typeof AdminIndexRoute
   '/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -141,12 +141,12 @@ export interface FileRoutesByTo {
   '/event': typeof EventRoute
   '/marketplace': typeof MarketplaceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/hero': typeof AdminHeroRoute
   '/admin/login': typeof AdminLoginRoute
   '/umkm/$slug': typeof UmkmSlugRoute
+  '/admin': typeof AdminIndexRoute
   '/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
-  '/admin/hero': typeof AdminHeroRoute
-  '/admin': typeof AdminIndexRoute
   '/dashboard': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -154,7 +154,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
-  '/admin_/login': typeof AdminLoginRoute
   '/artikel': typeof ArtikelRoute
   '/auth': typeof AuthRoute
   '/direktori': typeof DirektoriRoute
@@ -162,31 +161,32 @@ export interface FileRoutesById {
   '/marketplace': typeof MarketplaceRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRouteWithChildren
+  '/admin/hero': typeof AdminHeroRoute
+  '/admin_/login': typeof AdminLoginRoute
   '/umkm/$slug': typeof UmkmSlugRoute
+  '/admin/': typeof AdminIndexRoute
   '/_authenticated/dashboard/produk': typeof AuthenticatedDashboardProdukRoute
   '/_authenticated/dashboard/profil': typeof AuthenticatedDashboardProfilRoute
-  '/admin/hero': typeof AdminHeroRoute
-  '/admin/': typeof AdminIndexRoute
   '/_authenticated/dashboard/': typeof AuthenticatedDashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/artikel'
     | '/auth'
     | '/direktori'
     | '/event'
     | '/marketplace'
     | '/sitemap.xml'
-    | '/admin/login'
-    | '/admin'
     | '/dashboard'
+    | '/admin/hero'
+    | '/admin/login'
     | '/umkm/$slug'
+    | '/admin/'
     | '/dashboard/produk'
     | '/dashboard/profil'
-    | '/admin/hero'
-    | '/admin/'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -197,19 +197,18 @@ export interface FileRouteTypes {
     | '/event'
     | '/marketplace'
     | '/sitemap.xml'
+    | '/admin/hero'
     | '/admin/login'
     | '/umkm/$slug'
+    | '/admin'
     | '/dashboard/produk'
     | '/dashboard/profil'
-    | '/admin/hero'
-    | '/admin'
     | '/dashboard'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/admin'
-    | '/admin_/login'
     | '/artikel'
     | '/auth'
     | '/direktori'
@@ -217,11 +216,12 @@ export interface FileRouteTypes {
     | '/marketplace'
     | '/sitemap.xml'
     | '/_authenticated/dashboard'
+    | '/admin/hero'
+    | '/admin_/login'
     | '/umkm/$slug'
+    | '/admin/'
     | '/_authenticated/dashboard/produk'
     | '/_authenticated/dashboard/profil'
-    | '/admin/hero'
-    | '/admin/'
     | '/_authenticated/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -229,13 +229,13 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
-  AdminLoginRoute: typeof AdminLoginRoute
   ArtikelRoute: typeof ArtikelRoute
   AuthRoute: typeof AuthRoute
   DirektoriRoute: typeof DirektoriRoute
   EventRoute: typeof EventRoute
   MarketplaceRoute: typeof MarketplaceRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  AdminLoginRoute: typeof AdminLoginRoute
   UmkmSlugRoute: typeof UmkmSlugRoute
 }
 
@@ -283,13 +283,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArtikelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -297,11 +290,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/admin_/login': {
-      id: '/admin_/login'
-      path: '/admin/login'
-      fullPath: '/admin/login'
-      preLoaderRoute: typeof AdminLoginRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -311,12 +304,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/umkm/$slug': {
       id: '/umkm/$slug'
       path: '/umkm/$slug'
       fullPath: '/umkm/$slug'
       preLoaderRoute: typeof UmkmSlugRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin_/login': {
+      id: '/admin_/login'
+      path: '/admin/login'
+      fullPath: '/admin/login'
+      preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/hero': {
+      id: '/admin/hero'
+      path: '/hero'
+      fullPath: '/admin/hero'
+      preLoaderRoute: typeof AdminHeroRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
@@ -346,34 +360,8 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardProdukRouteImport
       parentRoute: typeof AuthenticatedDashboardRoute
     }
-    '/admin/': {
-      id: '/admin/'
-      path: '/'
-      fullPath: '/admin/'
-      preLoaderRoute: typeof AdminIndexRouteImport
-      parentRoute: typeof AdminRoute
-    }
-    '/admin/hero': {
-      id: '/admin/hero'
-      path: '/hero'
-      fullPath: '/admin/hero'
-      preLoaderRoute: typeof AdminHeroRouteImport
-      parentRoute: typeof AdminRoute
-    }
   }
 }
-
-interface AdminRouteChildren {
-  AdminIndexRoute: typeof AdminIndexRoute
-  AdminHeroRoute: typeof AdminHeroRoute
-}
-
-const AdminRouteChildren: AdminRouteChildren = {
-  AdminIndexRoute: AdminIndexRoute,
-  AdminHeroRoute: AdminHeroRoute,
-}
-
-const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 interface AuthenticatedDashboardRouteChildren {
   AuthenticatedDashboardProdukRoute: typeof AuthenticatedDashboardProdukRoute
@@ -405,17 +393,29 @@ const AuthenticatedRouteWithChildren = AuthenticatedRoute._addFileChildren(
   AuthenticatedRouteChildren,
 )
 
+interface AdminRouteChildren {
+  AdminHeroRoute: typeof AdminHeroRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminHeroRoute: AdminHeroRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
-  AdminLoginRoute: AdminLoginRoute,
   ArtikelRoute: ArtikelRoute,
   AuthRoute: AuthRoute,
   DirektoriRoute: DirektoriRoute,
   EventRoute: EventRoute,
   MarketplaceRoute: MarketplaceRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  AdminLoginRoute: AdminLoginRoute,
   UmkmSlugRoute: UmkmSlugRoute,
 }
 export const routeTree = rootRouteImport
