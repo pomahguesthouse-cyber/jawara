@@ -8,7 +8,7 @@ const navItems = [
   { to: "/marketplace", label: "Marketplace",  icon: ShoppingBag },
   { to: "/event",       label: "Event",         icon: CalendarDays },
   { to: "/artikel",     label: "Edukasi",       icon: BookOpen },
-  { to: "/tentang",     label: "Tentang Kami",  icon: Info },
+  { to: "/tentang",     label: "Tentang JAWARA",  icon: Info },
 ];
 
 export function PublicNav() {
