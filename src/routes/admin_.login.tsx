@@ -9,7 +9,7 @@ type Search = { redirect?: string; error?: "not_admin" };
 // /admin/login is OUTSIDE the /admin layout (note the trailing underscore on
 // the parent segment) so the auth-protecting beforeLoad of /admin doesn't
 // apply here — otherwise the redirect chain would loop.
-export const Route = createFileRoute("/admin/login")({
+export const Route = createFileRoute("/admin_/login")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>): Search => ({
     redirect: typeof s.redirect === "string" ? s.redirect : undefined,
