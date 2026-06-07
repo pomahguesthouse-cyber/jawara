@@ -147,7 +147,7 @@ function AdminDashboard() {
       }
       const { data, error } = await supabase
         .from("umkm_profiles")
-        .update(cleaned)
+        .update(cleaned as any)
         .eq("id", id)
         .select("id");
       if (error) throw error;

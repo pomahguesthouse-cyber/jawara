@@ -456,8 +456,8 @@ function AdminHeroSliderPage() {
         };
         const isTemp = !slide.id || slide.id.startsWith("temp_");
         const { error } = isTemp
-          ? await supabase.from("hero_slides").insert(payload)
-          : await supabase.from("hero_slides").update(payload).eq("id", slide.id);
+          ? await supabase.from("hero_slides").insert(payload as any)
+          : await supabase.from("hero_slides").update(payload as any).eq("id", slide.id);
         if (error) throw error;
       }
     },
