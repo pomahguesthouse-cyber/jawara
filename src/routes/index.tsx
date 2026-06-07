@@ -81,16 +81,16 @@ const homeQueryOptions = queryOptions({
   },
 });
 
-export const Route = createFileRoute("/")(({
+export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "JAWARA — Temukan UMKM Terbaik Jawa Tengah" },
       { name: "description", content: "Direktori digital UMKM Jawa Tengah. Jelajahi ribuan UMKM, produk lokal, event, dan tips bisnis." },
     ],
   }),
-  loader: ({ context }) => context.queryClient.ensureQueryData(homeQueryOptions),
+  loader: ({ context }: { context: any }) => context.queryClient.ensureQueryData(homeQueryOptions),
   component: HomePage,
-}) as Parameters<typeof createFileRoute>[0] extends infer T ? T : never);
+});
 
 function HomePage() {
   return (
@@ -812,8 +812,8 @@ function UmkmCard({ umkm, productImages = [], productCount = 0 }: { umkm: UmkmDa
               />
             ))}
             <span className="text-xs font-bold text-gray-700 ml-0.5">{Number(umkm.rating).toFixed(1)}</span>
-            {umkm.review_count != null && (
-              <span className="text-xs text-gray-400">({umkm.review_count} ulasan)</span>
+            {(umkm as any).review_count != null && (
+              <span className="text-xs text-gray-400">({String((umkm as any).review_count)} ulasan)</span>
             )}
           </div>
         )}
