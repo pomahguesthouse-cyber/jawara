@@ -42,12 +42,34 @@ function Overview() {
       {!data?.umkm && (
         <div className="rounded-2xl bg-primary text-primary-foreground p-6 sm:p-8 mb-8 flex flex-col sm:flex-row items-start gap-4 justify-between">
           <div>
-            <h3 className="text-xl font-extrabold">Lengkapi profil usaha Anda dulu</h3>
-            <p className="text-sm opacity-80 mt-1">Buat profil UMKM agar bisa menambahkan produk dan tampil di direktori publik.</p>
+            <h3 className="text-xl font-extrabold">Profil UMKM belum ada</h3>
+            <p className="text-sm opacity-80 mt-1">Buat profil UMKM untuk mengelola produk dan menampilkan usaha di direktori publik.</p>
           </div>
-          <Link to="/dashboard/profil" className="bg-background text-primary px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
-            Buat Profil UMKM
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link to="/dashboard/profil" className="bg-background text-primary px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap">
+              Buat Profil UMKM
+            </Link>
+            {import.meta?.env?.MODE !== 'production' && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const { data, error } = await supabase
+                      .from('umkm_profiles')
+                      .select('id, name, slug')
+                      .eq('owner_id', user.id)
+                      .maybeSingle();
+                    alert(error ? `Error: ${error.message}` : data ? `UMKM: ${data.name}` : 'Belum ada profil UMKM untuk akun ini');
+                  } catch (e) {
+                    alert('Gagal cek profil')
+                  }
+                }}
+                className="rounded-xl border border-white/40 px-4 py-2.5 text-sm font-bold hover:bg-white/10"
+              >
+                Debug cek profil
+              </button>
+            )}
+          </div>
         </div>
       )}
 
