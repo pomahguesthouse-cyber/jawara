@@ -22,12 +22,52 @@ function AdminDashboard() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>("umkm");
 
-  // Category Input states
+  const [editingCategory, setEditingCategory] = useState<any | null>(null);
+  const [editCatName, setEditCatName] = useState("");
+  const [editCatSlug, setEditCatSlug] = useState("");
+  const [editCatIcon, setEditCatIcon] = useState("");
+  const [editCatIconUrl, setEditCatIconUrl] = useState<string | null>(null);
   const [newCatName, setNewCatName] = useState("");
   const [newCatSlug, setNewCatSlug] = useState("");
   const [newCatIcon, setNewCatIcon] = useState("");
   const [newCatIconUrl, setNewCatIconUrl] = useState<string | null>(null);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  const openEditCategory = (c: any) => {
+    setEditingCategory(c);
+    setEditCatName(c.name ?? "");
+    setEditCatSlug(c.slug ?? "");
+    setEditCatIcon(c.icon ?? "");
+    setEditCatIconUrl(c.icon_url ?? null);
+  };
+
+  const uploadEditCategoryIcon = async (file: File) => {
+    const ext = file.name.split(".").pop() || "png";
+    const path = `category_icons/edit-${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("category_icons").upload(path, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data } = supabase.storage.from("category_icons").getPublicUrl(path);
+    setEditCatIconUrl(data.publicUrl);
+    setEditCatIcon("");
+  };
+
+  const removeEditCategoryIcon = () => {
+    setEditCatIconUrl(null);
+    setEditCatIcon("");
+  };
+
+  const updateCategory = async () => {
+    if (!editingCategory?.id || !editCatName.trim()) {
+      toast.error("Nama kategori wajib diisi");
+      return;
+    }
+    const slug = editCatSlug.trim() || editCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const payload: any = { name: editCatName.trim(), slug };
+    if (editCatIconUrl) payload.icon_url = editCatIconUrl;
+    else if (editCatIcon.trim()) payload.icon = editCatIcon.trim();
+    const { error } = await supabase.from("categories").update(payload).eq("id", editingCategory.id).select("id");
+    if (error) throw error;
+  };
 
   const uploadCategoryIcon = async (file: File) => {
     const ext = file.name.split('.').pop() || 'png';
