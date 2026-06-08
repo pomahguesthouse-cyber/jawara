@@ -154,7 +154,7 @@ function AdminDashboard() {
     },
   });
 
-  const { data: categoriesList = [], isLoading: categoriesLoading } = useQuery({
+  const { data: categoriesList = [], isLoading: categoriesLoading, isError: categoriesError } = useQuery({
     queryKey: ["admin-categories"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -162,9 +162,19 @@ function AdminDashboard() {
         .select("id, name, slug, icon, icon_url, created_at")
         .order("name");
 
-      if (error) throw error;
+      // icon_url column might not exist yet — fall back to fetching without it
+      if (error) {
+        const fallback = await supabase
+          .from("categories")
+          .select("id, name, slug, icon, created_at")
+          .order("name");
+        if (fallback.error) throw fallback.error;
+        return (fallback.data ?? []).map((c: any) => ({ ...c, icon_url: null }));
+      }
+
       return data ?? [];
     },
+    retry: 1,
   });
 
   // ─── Mutations ──────────────────────────────────────────────────────────────
@@ -653,6 +663,12 @@ function AdminDashboard() {
                   <div className="p-12 text-center text-gray-400 flex flex-col items-center justify-center gap-2">
                     <Loader2 className="size-6 text-[#1a6b3c] animate-spin" />
                     <span>Memuat kategori...</span>
+                  </div>
+                ) : categoriesError ? (
+                  <div className="p-10 text-center text-red-400 flex flex-col items-center gap-2">
+                    <AlertCircle className="size-6" />
+                    <span className="text-sm font-semibold">Gagal memuat kategori</span>
+                    <span className="text-xs text-gray-400">Periksa koneksi atau hubungi administrator</span>
                   </div>
                 ) : categoriesList.length === 0 ? (
                   <div className="p-10 text-center text-gray-400">Belum ada kategori.</div>
