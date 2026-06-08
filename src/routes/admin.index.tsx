@@ -475,9 +475,10 @@ function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── 2. MANAJEMEN PRODUK ── */}
         {activeTab === "products" && (
