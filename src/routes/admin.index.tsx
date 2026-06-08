@@ -483,9 +483,10 @@ function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── 2. MANAJEMEN PRODUK ── */}
         {activeTab === "products" && (
@@ -713,10 +714,10 @@ function AdminDashboard() {
             onSubmit={(e) => {
               e.preventDefault();
               editUmkm.mutate({
+                ...editingUmkm,
                 id: editingUmkm.id,
-                ...form,
-                category_id: form.category_id || null,
-                rating: Number(form.rating) || null,
+                category_id: editingUmkm.category_id || null,
+                rating: Number(editingUmkm.rating) || null,
               });
             }}
             className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl my-8 overflow-hidden"
