@@ -25,8 +25,24 @@ function AdminDashboard() {
   // Category Input states
   const [newCatName, setNewCatName] = useState("");
   const [newCatSlug, setNewCatSlug] = useState("");
-  const [newCatIcon, setNewCatIcon] = useState("🏪");
+  const [newCatIcon, setNewCatIcon] = useState("");
+  const [newCatIconUrl, setNewCatIconUrl] = useState<string | null>(null);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
+
+  const uploadCategoryIcon = async (file: File) => {
+    const ext = file.name.split('.').pop() || 'png';
+    const path = `category_icons/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from('category_icons').upload(path, file, { upsert: true, contentType: file.type });
+    if (error) throw error;
+    const { data: { publicUrl } } = supabase.storage.from('category_icons').getPublicUrl(path);
+    setNewCatIconUrl(publicUrl);
+    setNewCatIcon("");
+  };
+
+  const removeCategoryIcon = () => {
+    setNewCatIconUrl(null);
+    setNewCatIcon("");
+  };
 
   // ─── Queries ───────────────────────────────────────────────────────────────
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -213,21 +229,28 @@ function AdminDashboard() {
   const addCategory = useMutation({
     mutationFn: async () => {
       const slug = newCatSlug.trim() || newCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const payload: any = { name: newCatName.trim(), slug };
+      if (newCatIconUrl) {
+        payload.icon_url = newCatIconUrl;
+      } else if (newCatIcon.trim()) {
+        payload.icon = newCatIcon.trim();
+      }
       const { error } = await supabase
         .from("categories")
-        .insert({ name: newCatName.trim(), slug, icon: newCatIcon });
+        .insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Kategori baru berhasil ditambahkan");
       setNewCatName("");
       setNewCatSlug("");
-      setNewCatIcon("🏪");
+      setNewCatIcon("");
+      setNewCatIconUrl(null);
       setIsAddingCategory(false);
       qc.invalidateQueries({ queryKey: ["admin-categories"] });
       qc.invalidateQueries({ queryKey: ["admin-stats"] });
     },
-    onError: (e) => toast.error(e.message),
+    onError: (e) => toast.error(e?.message ?? "Gagal menambahkan kategori"),
   });
 
   const deleteCategory = useMutation({
@@ -581,13 +604,25 @@ function AdminDashboard() {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold block mb-1">Icon (Emoji)</label>
-                    <input
-                      value={newCatIcon}
-                      onChange={(e) => setNewCatIcon(e.target.value)}
-                      placeholder="e.g. 🎨"
-                      className="w-full h-10 px-3 rounded-xl bg-white border border-gray-200 text-sm text-center focus:outline-none focus:ring-2 focus:ring-[#1a6b3c]"
-                    />
+                    <label className="text-xs font-semibold block mb-1">Icon Kategori</label>
+                    <label className="flex items-center justify-between gap-3 h-10 px-3 rounded-xl bg-white border border-gray-200 text-sm cursor-pointer hover:border-[#1a6b3c]">
+                      <span className="truncate text-gray-600">{newCatIconUrl || newCatIcon || 'Pilih file kategori...'}</span>
+                      <span className="text-[10px] font-bold text-[#1a6b3c] uppercase">Upload</span>
+                      <input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          setNewCatIcon(URL.createObjectURL(file));
+                          uploadCategoryIcon(file).catch((err) => toast.error(err?.message ?? 'Upload icon gagal'));
+                        }}
+                      />
+                    </label>
+                    {(newCatIcon || newCatIconUrl) && (
+                      <button type="button" onClick={removeCategoryIcon} className="mt-1 text-[10px] font-bold text-red-500">Hapus icon</button>
+                    )}
                   </div>
                   <button
                     onClick={() => {
@@ -625,22 +660,28 @@ function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                      {categoriesList.map((c: any) => (
-                        <tr key={c.id} className="hover:bg-gray-50/50">
-                          <td className="px-4 py-3 text-center text-xl">{c.icon || "🏪"}</td>
-                          <td className="px-4 py-3 font-bold text-gray-900">{c.name}</td>
-                          <td className="px-4 py-3 text-xs text-gray-500 font-mono">{c.slug}</td>
-                          <td className="px-4 py-3 text-right">
-                            <button
-                              onClick={() => confirm(`Hapus kategori "${c.name}"? Produk dengan kategori ini akan diset NULL.`) && deleteCategory.mutate(c.id)}
-                              className="p-1.5 rounded-lg border border-red-500/10 text-red-500 hover:bg-red-50 transition cursor-pointer"
-                            >
-                              <Trash2 className="size-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
+                                      {(categoriesList as any[]).map((c: any) => (
+                                        <tr key={c.id} className="hover:bg-gray-50/50">
+                                          <td className="px-4 py-3 text-center">
+                                            {c.icon_url ? (
+                                              <img src={c.icon_url} alt={c.name} className="size-8 rounded-lg object-cover mx-auto" />
+                                            ) : (
+                                              <span className="text-xl">{c.icon || "🏪"}</span>
+                                            )}
+                                          </td>
+                                          <td className="px-4 py-3 font-bold text-gray-900">{c.name}</td>
+                                          <td className="px-4 py-3 text-xs text-gray-500 font-mono">{c.slug}</td>
+                                          <td className="px-4 py-3 text-right">
+                                            <button
+                                              onClick={() => confirm(`Hapus kategori "${c.name}"? Produk dengan kategori ini akan diset NULL.`) && deleteCategory.mutate(c.id)}
+                                              className="p-1.5 rounded-lg border border-red-500/10 text-red-500 hover:bg-red-50 transition cursor-pointer"
+                                            >
+                                              <Trash2 className="size-4" />
+                                            </button>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
                   </table>
                 )}
               </div>
