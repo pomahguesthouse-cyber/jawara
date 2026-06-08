@@ -1035,7 +1035,7 @@ function CtaBanner() {
                 search={{ mode: "register" } as never}
                 className="inline-flex items-center justify-center gap-2 bg-white text-[#1a6b3c] px-6 py-3 rounded-full font-bold text-sm hover:bg-gray-100 transition"
               >
-                Daftarkan UMKM Sekarang <ChevronRight className="size-4" />
+                Daftarkan UMKM Kamu <ChevronRight className="size-4" />
               </Link>
               <Link
                 to="/direktori"
