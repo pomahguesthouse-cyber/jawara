@@ -56,18 +56,26 @@ function AdminDashboard() {
     setEditCatIcon("");
   };
 
-  const updateCategory = async () => {
-    if (!editCategory?.id || !editCatName.trim()) {
-      toast.error("Nama kategori wajib diisi");
-      return;
-    }
-    const slug = editCatSlug.trim() || editCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const payload: any = { name: editCatName.trim(), slug };
-    if (editCatIconUrl) payload.icon_url = editCatIconUrl;
-    else if (editCatIcon.trim()) payload.icon = editCatIcon.trim();
-    const { error } = await supabase.from("categories").update(payload).eq("id", editCategory.id).select("id");
-    if (error) throw error;
-  };
+  const updateCategoryMutation = useMutation({
+    mutationFn: async () => {
+      if (!editCategory?.id || !editCatName.trim()) {
+        throw new Error("Nama kategori wajib diisi");
+      }
+      const slug = editCatSlug.trim() || editCatName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const payload: any = { name: editCatName.trim(), slug };
+      if (editCatIconUrl) payload.icon_url = editCatIconUrl;
+      else if (editCatIcon.trim()) payload.icon = editCatIcon.trim();
+      const { error } = await supabase.from("categories").update(payload).eq("id", editCategory.id).select("id");
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Kategori berhasil diperbarui");
+      setEditCategory(null);
+      qc.invalidateQueries({ queryKey: ["admin-categories"] });
+      qc.invalidateQueries({ queryKey: ["admin-stats"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Gagal memperbarui kategori"),
+  });
 
   const uploadCategoryIcon = async (file: File) => {
     const ext = file.name.split('.').pop() || 'png';
@@ -882,7 +890,7 @@ function AdminDashboard() {
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              updateCategory();
+              updateCategoryMutation.mutate();
             }}
             className="bg-white w-full max-w-xl rounded-3xl shadow-2xl my-8 overflow-hidden"
           >
@@ -986,11 +994,13 @@ function AdminDashboard() {
               </button>
               <button
                 type="submit"
-                disabled={editCategory.isPending}
+                disabled={updateCategoryMutation.isPending}
                 className="px-5 py-2 text-sm font-bold text-white bg-[#1a6b3c] hover:bg-[#155c33] disabled:opacity-60 rounded-xl flex items-center gap-1.5"
               >
-                <CheckCircle2 className="size-3.5" />
-                Simpan Perubahan
+                {updateCategoryMutation.isPending
+                  ? <Loader2 className="size-3.5 animate-spin" />
+                  : <CheckCircle2 className="size-3.5" />}
+                {updateCategoryMutation.isPending ? "Menyimpan..." : "Simpan Perubahan"}
               </button>
             </footer>
           </form>
