@@ -22,11 +22,11 @@ function AdminDashboard() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabType>("umkm");
 
-  const [editingCategory, setEditingCategory] = useState<any | null>(null);
   const [editCatName, setEditCatName] = useState("");
   const [editCatSlug, setEditCatSlug] = useState("");
   const [editCatIcon, setEditCatIcon] = useState("");
   const [editCatIconUrl, setEditCatIconUrl] = useState<string | null>(null);
+  const [editCategory, setEditCategory] = useState<any | null>(null);
   const [newCatName, setNewCatName] = useState("");
   const [newCatSlug, setNewCatSlug] = useState("");
   const [newCatIcon, setNewCatIcon] = useState("");
@@ -34,7 +34,7 @@ function AdminDashboard() {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
 
   const openEditCategory = (c: any) => {
-    setEditingCategory(c);
+    setEditCategory(c);
     setEditCatName(c.name ?? "");
     setEditCatSlug(c.slug ?? "");
     setEditCatIcon(c.icon ?? "");
@@ -46,8 +46,8 @@ function AdminDashboard() {
     const path = `category_icons/edit-${Date.now()}.${ext}`;
     const { error } = await supabase.storage.from("category_icons").upload(path, file, { upsert: true, contentType: file.type });
     if (error) throw error;
-    const { data } = supabase.storage.from("category_icons").getPublicUrl(path);
-    setEditCatIconUrl(data.publicUrl);
+    const { data: { publicUrl } } = supabase.storage.from("category_icons").getPublicUrl(path);
+    setEditCatIconUrl(publicUrl);
     setEditCatIcon("");
   };
 
@@ -57,7 +57,7 @@ function AdminDashboard() {
   };
 
   const updateCategory = async () => {
-    if (!editingCategory?.id || !editCatName.trim()) {
+    if (!editCategory?.id || !editCatName.trim()) {
       toast.error("Nama kategori wajib diisi");
       return;
     }
@@ -65,7 +65,7 @@ function AdminDashboard() {
     const payload: any = { name: editCatName.trim(), slug };
     if (editCatIconUrl) payload.icon_url = editCatIconUrl;
     else if (editCatIcon.trim()) payload.icon = editCatIcon.trim();
-    const { error } = await supabase.from("categories").update(payload).eq("id", editingCategory.id).select("id");
+    const { error } = await supabase.from("categories").update(payload).eq("id", editCategory.id).select("id");
     if (error) throw error;
   };
 
@@ -151,7 +151,7 @@ function AdminDashboard() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categories")
-        .select("id, name, slug, icon, created_at")
+        .select("id, name, slug, icon, icon_url, created_at")
         .order("name");
 
       if (error) throw error;
@@ -295,8 +295,6 @@ function AdminDashboard() {
 
   const deleteCategory = useMutation({
     mutationFn: async (id: string) => {
-      // .select() forces PostgREST to return affected rows so we can detect
-      // the RLS-denied case where the request "succeeds" with 0 rows.
       const { data, error } = await supabase
         .from("categories")
         .delete()
@@ -381,141 +379,105 @@ function AdminDashboard() {
         </div>
       ) : null}
 
-      {/* ── Tabs Navigation ── */}
-      <div className="border-b border-gray-200">
-        <div className="flex gap-6">
+      {/* Tab navigation */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm">
+        <nav className="flex gap-6 border-b border-gray-100 px-6">
           {(["umkm", "products", "categories"] as TabType[]).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-3.5 text-sm font-bold border-b-2 transition-all cursor-pointer capitalize ${
+              className={`py-3 text-sm font-bold border-b-2 transition cursor-pointer ${
                 activeTab === tab
                   ? "border-[#1a6b3c] text-[#1a6b3c]"
-                  : "border-transparent text-gray-400 hover:text-gray-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
               }`}
             >
-              {tab === "umkm" ? "Manajemen UMKM" : tab === "products" ? "Manajemen Produk" : "Kategori"}
+              {tab === "umkm"
+                ? "Manajemen UMKM"
+                : tab === "products"
+                ? "Manajemen Produk"
+                : "Kategori"}
             </button>
           ))}
-        </div>
-      </div>
+        </nav>
 
-      {/* ── Tab Content ── */}
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden">
+        <div className="p-6">
         {/* ── 1. MANAJEMEN UMKM ── */}
         {activeTab === "umkm" && (
-          <div className="overflow-x-auto">
+          <div className="space-y-6">
             {umkmLoading ? (
               <div className="p-20 text-center text-gray-400 flex flex-col items-center justify-center gap-2">
                 <Loader2 className="size-8 text-[#1a6b3c] animate-spin" />
                 <span>Memuat data UMKM...</span>
               </div>
-            ) : umkmList.length === 0 ? (
-              <div className="p-16 text-center text-gray-400">
-                <AlertCircle className="size-8 mx-auto mb-2 text-gray-300" />
-                Belum ada UMKM terdaftar di sistem.
-              </div>
             ) : (
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
-                    <th className="px-6 py-4">UMKM</th>
-                    <th className="px-6 py-4">Kota</th>
-                    <th className="px-6 py-4">Kategori</th>
-                    <th className="px-6 py-4">Pemilik (Email)</th>
-                    <th className="px-6 py-4 text-center">Status</th>
-                    <th className="px-6 py-4 text-right">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                  {umkmList.map((u: any) => (
-                    <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-6 py-4.5">
-                        <div className="font-extrabold text-gray-900">{u.name}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">slug: {u.slug}</div>
-                      </td>
-                      <td className="px-6 py-4.5">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="size-3.5 text-gray-400 shrink-0" />
-                          <span>{u.city}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4.5">
-                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-gray-100 text-gray-600">
-                          {u.category?.name || "Kustom / Lainnya"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4.5 text-xs font-mono text-gray-500">
-                        {u.owner_id}
-                      </td>
-                      <td className="px-6 py-4.5">
-                        <div className="flex items-center justify-center gap-2">
-                          {u.is_verified ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-blue-100 text-blue-700">
-                              <CheckCircle2 className="size-3" /> Verified
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-gray-100 text-gray-400">
-                              Unverified
-                            </span>
-                          )}
-                          {u.is_published ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-green-100 text-green-700">
-                              Live
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-yellow-100 text-yellow-700">
-                              Draft
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4.5 text-right space-x-1 whitespace-nowrap">
-                        <button
-                          onClick={() => toggleVerifyUmkm.mutate({ id: u.id, status: !u.is_verified })}
-                          className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${
-                            u.is_verified
-                              ? "border-gray-200 text-gray-500 hover:bg-gray-50"
-                              : "border-blue-200 text-blue-600 bg-blue-50 hover:bg-blue-100/50"
-                          }`}
-                        >
-                          {u.is_verified ? "Unverify" : "Verify"}
-                        </button>
-
-                        <button
-                          onClick={() => togglePublishUmkm.mutate({ id: u.id, status: !u.is_published })}
-                          className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${
-                            u.is_published
-                              ? "border-yellow-200 text-yellow-600 bg-yellow-50 hover:bg-yellow-100/50"
-                              : "border-green-200 text-[#1a6b3c] bg-green-50 hover:bg-green-100/50"
-                          }`}
-                        >
-                          {u.is_published ? "Draft" : "Publish"}
-                        </button>
-
-                        <button
-                          onClick={() => setEditingUmkm(u)}
-                          className="inline-flex items-center justify-center p-2 rounded-lg border border-indigo-100 text-indigo-600 bg-indigo-50 hover:bg-indigo-100/50 transition cursor-pointer"
-                          title="Edit UMKM"
-                        >
-                          <Pencil className="size-4" />
-                        </button>
-
-                        <button
-                          onClick={() => confirm(`Hapus UMKM "${u.name}" beserta seluruh produknya? Tindakan ini permanen.`) && deleteUmkm.mutate(u.id)}
-                          className="inline-flex items-center justify-center p-2 rounded-lg border border-red-100 text-red-500 bg-red-50 hover:bg-red-100/50 transition cursor-pointer"
-                          title="Hapus UMKM"
-                        >
-                          <Trash2 className="size-4" />
-                        </button>
-                      </td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100 text-xs font-bold text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-4">UMKM</th>
+                      <th className="px-6 py-4">Kategori</th>
+                      <th className="px-6 py-4">Kota</th>
+                      <th className="px-6 py-4 text-center">Status</th>
+                      <th className="px-6 py-4 text-right">Aksi</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+                    {umkmList.map((u: any) => (
+                      <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="px-6 py-3.5">
+                          <div className="font-extrabold text-gray-900">{u.name}</div>
+                          <div className="text-xs text-gray-400">slug: {u.slug}</div>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="font-bold text-gray-600">{u.category?.name ?? "Tanpa kategori"}</div>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="font-bold text-gray-600">{u.city || "-"}</div>
+                          <div className="text-xs text-gray-400">{u.district ? `Kec. ${u.district}` : ""}</div>
+                        </td>
+                        <td className="px-6 py-3.5">
+                          <div className="flex justify-center">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${
+                              u.is_published ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                            }`}>
+                              {u.is_published ? "Live" : "Draft"}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-3.5 text-right space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => togglePublishProduct.mutate({ id: u.id, status: !u.is_published })}
+                            className={`text-xs font-bold px-2.5 py-1.5 rounded-lg border transition cursor-pointer ${
+                              u.is_published
+                                ? "border-yellow-200 text-yellow-600 bg-yellow-50 hover:bg-yellow-100/50"
+                                : "border-green-200 text-[#1a6b3c] bg-green-50 hover:bg-green-100/50"
+                            }`}
+                          >
+                            {u.is_published ? "Draft" : "Publish"}
+                          </button>
+                          <button
+                            onClick={() => setEditingUmkm(u)}
+                            className="inline-flex items-center justify-center p-2 rounded-lg border border-gray-200 text-gray-500 hover:text-indigo-600 hover:border-indigo-300 transition cursor-pointer"
+                            title="Edit UMKM"
+                          >
+                            <Pencil className="size-4" />
+                          </button>
+                          <button
+                            onClick={() => confirm(`Hapus UMKM "${u.name}" beserta seluruh produknya? Tindakan ini permanen.`) && deleteUmkm.mutate(u.id)}
+                            className="inline-flex items-center justify-center p-2 rounded-lg border border-red-100 text-red-500 bg-red-50 hover:bg-red-100/50 transition cursor-pointer"
+                            title="Hapus UMKM"
+                          >
+                            <Trash2 className="size-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
 
         {/* ── 2. MANAJEMEN PRODUK ── */}
         {activeTab === "products" && (
@@ -549,11 +511,7 @@ function AdminDashboard() {
                       <td className="px-6 py-3.5">
                         <div className="size-11 rounded-lg bg-gray-100 overflow-hidden ring-1 ring-gray-100">
                           {p.image_url ? (
-                            isVideoMedia(p.image_url) ? (
-                              <video src={p.image_url} muted playsInline preload="metadata" className="size-full object-cover" />
-                            ) : (
-                              <img src={p.image_url} alt="" className="size-full object-cover" />
-                            )
+                            <img src={p.image_url} alt="" className="size-full object-cover" />
                           ) : (
                             <div className="size-full flex items-center justify-center text-gray-300 text-[10px]">No Pic</div>
                           )}
@@ -700,45 +658,343 @@ function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
-                                      {(categoriesList as any[]).map((c: any) => (
-                                        <tr key={c.id} className="hover:bg-gray-50/50">
-                                          <td className="px-4 py-3 text-center">
-                                            {c.icon_url ? (
-                                              <img src={c.icon_url} alt={c.name} className="size-8 rounded-lg object-cover mx-auto" />
-                                            ) : (
-                                              <span className="text-xl">{c.icon || "🏪"}</span>
-                                            )}
-                                          </td>
-                                          <td className="px-4 py-3 font-bold text-gray-900">{c.name}</td>
-                                          <td className="px-4 py-3 text-xs text-gray-500 font-mono">{c.slug}</td>
-                                          <td className="px-4 py-3 text-right">
-                                            <button
-                                              onClick={() => confirm(`Hapus kategori "${c.name}"? Produk dengan kategori ini akan diset NULL.`) && deleteCategory.mutate(c.id)}
-                                              className="p-1.5 rounded-lg border border-red-500/10 text-red-500 hover:bg-red-50 transition cursor-pointer"
-                                            >
-                                              <Trash2 className="size-4" />
-                                            </button>
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
+                      {categoriesList.map((c: any) => (
+                        <tr key={c.id} className="hover:bg-gray-50/50">
+                          <td className="px-4 py-3 text-center">
+                            {c.icon_url ? (
+                              <img src={c.icon_url} alt={c.name} className="size-8 rounded-lg object-cover mx-auto" />
+                            ) : (
+                              <span className="text-xl">{c.icon || "🏪"}</span>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 font-bold text-gray-900">{c.name}</td>
+                          <td className="px-4 py-3 text-xs text-gray-500 font-mono">{c.slug}</td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="inline-flex items-center gap-2 justify-end">
+                              <button
+                                onClick={() => openEditCategory(c)}
+                                className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-[#1a6b3c] hover:border-[#1a6b3c] transition cursor-pointer"
+                                title="Edit kategori"
+                              >
+                                <Pencil className="size-4" />
+                              </button>
+                              <button
+                                onClick={() => confirm(`Hapus kategori "${c.name}"? Produk dengan kategori ini akan diset NULL.`) && deleteCategory.mutate(c.id)}
+                                className="p-1.5 rounded-lg border border-red-500/10 text-red-500 hover:bg-red-50 transition cursor-pointer"
+                              >
+                                <Trash2 className="size-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
                   </table>
                 )}
               </div>
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* ─── Edit UMKM Modal ────────────────────────────────────────────────── */}
       {editingUmkm && (
-        <EditUmkmModal
-          umkm={editingUmkm}
-          categories={categoriesList}
-          onClose={() => setEditingUmkm(null)}
-          onSave={(patch) => editUmkm.mutate({ id: editingUmkm.id, ...patch })}
-          isSaving={editUmkm.isPending}
-        />
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              editUmkm.mutate({
+                id: editingUmkm.id,
+                ...form,
+                category_id: form.category_id || null,
+                rating: Number(form.rating) || null,
+              });
+            }}
+            className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl my-8 overflow-hidden"
+          >
+            <header className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div>
+                <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                  <Pencil className="size-4 text-indigo-600" />
+                  Edit UMKM
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5 truncate max-w-md">{editingUmkm.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUmkm(null)}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                aria-label="Tutup"
+              >
+                <X className="size-4" />
+              </button>
+            </header>
+
+            <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+              {/* Info dasar */}
+              <section className="space-y-3">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Info Dasar</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="Nama UMKM">
+                    <input
+                      value={umkmList.find((x: any) => x.id === editingUmkm?.id)?.name ?? editingUmkm?.name ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, name: e.target.value })}
+                      required
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Slug (URL)">
+                    <input
+                      value={editingUmkm?.slug ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, slug: e.target.value })}
+                      required
+                      className={`${INPUT_CLASS} font-mono text-xs`}
+                    />
+                  </Field>
+                  <Field label="Kota">
+                    <input
+                      value={editingUmkm?.city ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, city: e.target.value })}
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Kecamatan / Distrik">
+                    <input
+                      value={editingUmkm?.district ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, district: e.target.value })}
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                </div>
+                <Field label="Alamat Lengkap">
+                  <textarea
+                    value={editingUmkm?.address ?? ""}
+                    onChange={(e) => setEditingUmkm({ ...editingUmkm, address: e.target.value })}
+                    rows={2}
+                    className={`${INPUT_CLASS} resize-none`}
+                  />
+                </Field>
+                <Field label="Deskripsi">
+                  <textarea
+                    value={editingUmkm?.description ?? ""}
+                    onChange={(e) => setEditingUmkm({ ...editingUmkm, description: e.target.value })}
+                    rows={3}
+                    className={`${INPUT_CLASS} resize-none`}
+                  />
+                </Field>
+              </section>
+
+              {/* Kontak & Media Sosial */}
+              <section className="space-y-3">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Kontak</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <Field label="WhatsApp">
+                    <input
+                      value={editingUmkm?.whatsapp ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, whatsapp: e.target.value })}
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Email">
+                    <input
+                      value={editingUmkm?.email ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, email: e.target.value })}
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Website">
+                    <input
+                      value={editingUmkm?.website ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, website: e.target.value })}
+                      placeholder="https://"
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Instagram">
+                    <input
+                      value={editingUmkm?.instagram ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, instagram: e.target.value })}
+                      placeholder="@username"
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Facebook">
+                    <input
+                      value={editingUmkm?.facebook ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, facebook: e.target.value })}
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="TikTok">
+                    <input
+                      value={editingUmkm?.tiktok ?? ""}
+                      onChange={(e) => setEditingUmkm({ ...editingUmkm, tiktok: e.target.value })}
+                      placeholder="@username"
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                </div>
+              </section>
+            </div>
+
+            <footer className="flex items-center justify-between p-4 border-t border-gray-100 bg-gray-50 sticky bottom-0">
+              <button
+                type="button"
+                onClick={() => setEditingUmkm(null)}
+                className="px-4 py-2 text-sm font-bold text-gray-600 rounded-xl hover:bg-gray-100"
+              >
+                Batal
+              </button>
+              <div className="flex items-center gap-2">
+                <label className="px-4 py-2 text-sm font-bold text-[#1a6b3c] rounded-xl border border-[#1a6b3c]/20 cursor-pointer hover:bg-[#1a6b3c]/5">
+                  Upload Logo
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => setEditingUmkm({ ...editingUmkm, logo_url: reader.result as string });
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={editUmkm.isPending}
+                  className="px-5 py-2 text-sm font-bold text-white bg-[#1a6b3c] hover:bg-[#155c33] disabled:opacity-60 rounded-xl flex items-center gap-1.5"
+                >
+                  {editUmkm.isPending ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+                  Simpan Perubahan
+                </button>
+              </div>
+            </footer>
+          </form>
+        </div>
+      )}
+
+      {/* ─── Edit Kategori Modal ────────────────────────────────────────────── */}
+      {editCategory && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              updateCategory();
+            }}
+            className="bg-white w-full max-w-xl rounded-3xl shadow-2xl my-8 overflow-hidden"
+          >
+            <header className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div>
+                <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
+                  <Pencil className="size-4 text-[#1a6b3c]" />
+                  Edit Kategori
+                </h2>
+                <p className="text-xs text-gray-500 mt-0.5 truncate max-w-md">{editCategory?.name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditCategory(null);
+                }}
+                className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+                aria-label="Tutup"
+              >
+                <X className="size-4" />
+              </button>
+            </header>
+
+            <div className="p-5 space-y-5">
+              <section className="space-y-3">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Info Dasar</h3>
+                <div className="space-y-3">
+                  <Field label="Nama Kategori">
+                    <input
+                      value={editCatName}
+                      onChange={(e) => setEditCatName(e.target.value)}
+                      required
+                      className={INPUT_CLASS}
+                    />
+                  </Field>
+                  <Field label="Slug (URL)">
+                    <input
+                      value={editCatSlug}
+                      onChange={(e) => setEditCatSlug(e.target.value)}
+                      className={`${INPUT_CLASS} font-mono text-xs`}
+                    />
+                  </Field>
+                </div>
+              </section>
+
+              <section className="space-y-3">
+                <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Icon</h3>
+                <div className="space-y-2">
+                  {editCatIconUrl ? (
+                    <div className="space-y-2">
+                      <img src={editCatIconUrl} alt="Preview" className="size-12 rounded-xl object-cover border border-gray-200" />
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-xs text-gray-500 truncate">{editCatIconUrl}</span>
+                        <button
+                          type="button"
+                          onClick={removeEditCategoryIcon}
+                          className="text-[11px] font-bold text-red-500"
+                        >
+                          Hapus icon
+                        </button>
+                      </div>
+                    </div>
+                  ) : editCatIcon ? (
+                    <div className="space-y-2">
+                      <span className="text-2xl">{editCatIcon}</span>
+                      <button
+                        type="button"
+                        onClick={removeEditCategoryIcon}
+                        className="text-[11px] font-bold text-red-500"
+                      >
+                        Hapus icon
+                      </button>
+                    </div>
+                  ) : null}
+                  <label className="flex items-center justify-between gap-3 h-10 px-3 rounded-xl bg-white border border-gray-200 text-sm cursor-pointer hover:border-[#1a6b3c]">
+                    <span className="truncate text-gray-600">{editCatIconUrl || editCatIcon || 'Pilih file icon...'}</span>
+                    <span className="text-[10px] font-bold text-[#1a6b3c] uppercase">Upload</span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        setEditCatIcon(URL.createObjectURL(file));
+                        uploadEditCategoryIcon(file).catch((err) => toast.error(err?.message ?? 'Upload icon gagal'));
+                      }}
+                    />
+                  </label>
+                </div>
+              </section>
+            </div>
+
+            <footer className="flex items-center justify-end gap-2 p-4 border-t border-gray-100 bg-gray-50 sticky bottom-0">
+              <button
+                type="button"
+                onClick={() => setEditCategory(null)}
+                className="px-4 py-2 text-sm font-bold text-gray-600 rounded-xl hover:bg-gray-100"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={editCategory.isPending}
+                className="px-5 py-2 text-sm font-bold text-white bg-[#1a6b3c] hover:bg-[#155c33] disabled:opacity-60 rounded-xl flex items-center gap-1.5"
+              >
+                <CheckCircle2 className="size-3.5" />
+                Simpan Perubahan
+              </button>
+            </footer>
+          </form>
+        </div>
       )}
     </div>
   );
@@ -752,273 +1008,6 @@ function isVideoMedia(url: string | null | undefined): boolean {
 
 const INPUT_CLASS =
   "w-full h-10 px-3 text-sm bg-white border border-gray-200 rounded-xl text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#1a6b3c]/30 focus:border-[#1a6b3c]";
-
-// ─── Edit UMKM Modal Component ────────────────────────────────────────────────
-function EditUmkmModal({
-  umkm,
-  categories,
-  onClose,
-  onSave,
-  isSaving,
-}: {
-  umkm: any;
-  categories: any[];
-  onClose: () => void;
-  onSave: (patch: Record<string, any>) => void;
-  isSaving: boolean;
-}) {
-  const [form, setForm] = useState({
-    name: umkm.name ?? "",
-    slug: umkm.slug ?? "",
-    city: umkm.city ?? "",
-    district: umkm.district ?? "",
-    address: umkm.address ?? "",
-    google_maps_url: umkm.google_maps_url ?? "",
-    category_id: umkm.category_id ?? "",
-    description: umkm.description ?? "",
-    whatsapp: umkm.whatsapp ?? "",
-    email: umkm.email ?? "",
-    website: umkm.website ?? "",
-    instagram: umkm.instagram ?? "",
-    facebook: umkm.facebook ?? "",
-    tiktok: umkm.tiktok ?? "",
-    logo_url: umkm.logo_url ?? "",
-    banner_url: umkm.banner_url ?? "",
-    rating: umkm.rating ?? 5.0,
-  });
-
-  const update = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) =>
-    setForm((prev) => ({ ...prev, [k]: v }));
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSave({
-      ...form,
-      category_id: form.category_id || null,
-      rating: Number(form.rating) || null,
-    });
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 flex items-start justify-center p-4 overflow-y-auto">
-      <form
-        onSubmit={submit}
-        className="bg-white w-full max-w-3xl rounded-3xl shadow-2xl my-8 overflow-hidden"
-      >
-        <header className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
-          <div>
-            <h2 className="text-lg font-extrabold text-gray-900 flex items-center gap-2">
-              <Pencil className="size-4 text-indigo-600" />
-              Edit UMKM
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5 truncate max-w-md">{umkm.name}</p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
-            aria-label="Tutup"
-          >
-            <X className="size-4" />
-          </button>
-        </header>
-
-        <div className="p-5 space-y-5">
-          {/* Info dasar */}
-          <section className="space-y-3">
-            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Info Dasar</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Nama UMKM">
-                <input
-                  value={form.name}
-                  onChange={(e) => update("name", e.target.value)}
-                  required
-                  className={INPUT_CLASS}
-                />
-              </Field>
-              <Field label="Slug (URL)">
-                <input
-                  value={form.slug}
-                  onChange={(e) => update("slug", e.target.value)}
-                  required
-                  className={`${INPUT_CLASS} font-mono text-xs`}
-                />
-              </Field>
-              <Field label="Kategori">
-                <select
-                  value={form.category_id ?? ""}
-                  onChange={(e) => update("category_id", e.target.value)}
-                  className={INPUT_CLASS}
-                >
-                  <option value="">— Tanpa kategori —</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Rating (0–5)">
-                <input
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="5"
-                  value={form.rating}
-                  onChange={(e) => update("rating", e.target.value as any)}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            </div>
-            <Field label="Deskripsi">
-              <textarea
-                value={form.description}
-                onChange={(e) => update("description", e.target.value)}
-                rows={3}
-                className={`${INPUT_CLASS} resize-none`}
-              />
-            </Field>
-          </section>
-
-          {/* Lokasi */}
-          <section className="space-y-3">
-            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Lokasi</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Kota">
-                <input
-                  value={form.city}
-                  onChange={(e) => update("city", e.target.value)}
-                  required
-                  className={INPUT_CLASS}
-                />
-              </Field>
-              <Field label="Kecamatan / Distrik">
-                <input
-                  value={form.district}
-                  onChange={(e) => update("district", e.target.value)}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            </div>
-            <Field label="Alamat Lengkap">
-              <textarea
-                value={form.address}
-                onChange={(e) => update("address", e.target.value)}
-                rows={2}
-                className={`${INPUT_CLASS} resize-none`}
-              />
-            </Field>
-            <Field label="Link Google Maps">
-              <input
-                value={form.google_maps_url}
-                onChange={(e) => update("google_maps_url", e.target.value)}
-                placeholder="https://maps.app.goo.gl/..."
-                className={INPUT_CLASS}
-              />
-            </Field>
-          </section>
-
-          {/* Kontak & Media Sosial */}
-          <section className="space-y-3">
-            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Kontak</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="WhatsApp">
-                <input
-                  value={form.whatsapp}
-                  onChange={(e) => update("whatsapp", e.target.value)}
-                  placeholder="628xxx"
-                  className={INPUT_CLASS}
-                />
-              </Field>
-              <Field label="Email">
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => update("email", e.target.value)}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-              <Field label="Website">
-                <input
-                  value={form.website}
-                  onChange={(e) => update("website", e.target.value)}
-                  placeholder="https://"
-                  className={INPUT_CLASS}
-                />
-              </Field>
-              <Field label="Instagram">
-                <input
-                  value={form.instagram}
-                  onChange={(e) => update("instagram", e.target.value)}
-                  placeholder="@username"
-                  className={INPUT_CLASS}
-                />
-              </Field>
-              <Field label="Facebook">
-                <input
-                  value={form.facebook}
-                  onChange={(e) => update("facebook", e.target.value)}
-                  className={INPUT_CLASS}
-                />
-              </Field>
-              <Field label="TikTok">
-                <input
-                  value={form.tiktok}
-                  onChange={(e) => update("tiktok", e.target.value)}
-                  placeholder="@username"
-                  className={INPUT_CLASS}
-                />
-              </Field>
-            </div>
-          </section>
-
-          {/* Media */}
-          <section className="space-y-3">
-            <h3 className="text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Media</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <Field label="Logo URL">
-                <input
-                  value={form.logo_url}
-                  onChange={(e) => update("logo_url", e.target.value)}
-                  className={`${INPUT_CLASS} text-xs`}
-                />
-                {form.logo_url && (
-                  <img src={form.logo_url} alt="" className="mt-2 size-16 rounded-xl object-cover border border-gray-200" />
-                )}
-              </Field>
-              <Field label="Banner URL">
-                <input
-                  value={form.banner_url}
-                  onChange={(e) => update("banner_url", e.target.value)}
-                  className={`${INPUT_CLASS} text-xs`}
-                />
-                {form.banner_url && (
-                  <img src={form.banner_url} alt="" className="mt-2 h-16 w-full rounded-xl object-cover border border-gray-200" />
-                )}
-              </Field>
-            </div>
-          </section>
-        </div>
-
-        <footer className="flex items-center justify-end gap-2 p-4 border-t border-gray-100 bg-gray-50 sticky bottom-0">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 text-sm font-bold text-gray-600 rounded-xl hover:bg-gray-100"
-          >
-            Batal
-          </button>
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="px-5 py-2 text-sm font-bold text-white bg-[#1a6b3c] hover:bg-[#155c33] disabled:opacity-60 rounded-xl flex items-center gap-1.5"
-          >
-            {isSaving ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
-            Simpan Perubahan
-          </button>
-        </footer>
-      </form>
-    </div>
-  );
-}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
